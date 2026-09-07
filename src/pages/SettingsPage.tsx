@@ -7,7 +7,8 @@ export function SettingsPage() {
   const { settings, tactics, navigate, updateSettings, exportData, importData } = useStore()
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState<string | null>(null)
-  const [keyDraft, setKeyDraft] = useState(settings.anthropicApiKey ?? '')
+  const [keyDraft, setKeyDraft] = useState(settings.geminiApiKey ?? '')
+  const [modelDraft, setModelDraft] = useState(settings.geminiModel ?? '')
   const [profileDraft, setProfileDraft] = useState(settings.playerProfile ?? '')
   void navigate
 
@@ -78,17 +79,27 @@ export function SettingsPage() {
       <section className="settings-section">
         <h2>AI コーチ</h2>
         <p className="hint small">
-          Anthropic の API キーを登録すると、戦術の詳細画面から練習メニューを提案してもらえます。キーはこの端末にだけ保存され、エクスポートには含まれません。
+          Google AI Studio（aistudio.google.com）で発行した Gemini の API キーを登録すると、戦術の詳細画面から練習メニューを提案してもらえます。キーはこの端末にだけ保存され、エクスポートには含まれません。
         </p>
         <label className="field">
-          <span>API キー</span>
+          <span>Gemini API キー</span>
           <input
             type="password"
             value={keyDraft}
-            placeholder="sk-ant-..."
+            placeholder="AIza..."
             autoComplete="off"
             onChange={(e) => setKeyDraft(e.target.value)}
-            onBlur={() => updateSettings({ anthropicApiKey: keyDraft.trim() || undefined })}
+            onBlur={() => updateSettings({ geminiApiKey: keyDraft.trim() || undefined })}
+          />
+        </label>
+        <label className="field">
+          <span>モデル名（任意。空なら最新の Pro 系を自動選択）</span>
+          <input
+            value={modelDraft}
+            placeholder="例: gemini-2.5-pro"
+            autoComplete="off"
+            onChange={(e) => setModelDraft(e.target.value)}
+            onBlur={() => updateSettings({ geminiModel: modelDraft.trim() || undefined })}
           />
         </label>
         <label className="field">

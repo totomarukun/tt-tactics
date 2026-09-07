@@ -17,8 +17,8 @@ export function AiCoachSheet({ tactic, onClose }: Props) {
   const linked = tasks.filter((t) => t.tacticIds.includes(tactic.id))
 
   useEffect(() => {
-    if (!settings.anthropicApiKey) {
-      setState({ kind: 'error', message: 'AI コーチを使うには、設定画面で API キーを登録してください。' })
+    if (!settings.geminiApiKey) {
+      setState({ kind: 'error', message: 'AI コーチを使うには、設定画面で Gemini の API キーを登録してください。' })
       return
     }
     let cancelled = false
@@ -76,7 +76,7 @@ export function AiCoachSheet({ tactic, onClose }: Props) {
         {state.kind === 'error' && (
           <div className="empty">
             <p>{state.message}</p>
-            {!settings.anthropicApiKey && (
+            {!settings.geminiApiKey && (
               <button className="secondary" onClick={() => navigate({ name: 'settings' })}>
                 設定画面へ
               </button>
@@ -86,6 +86,7 @@ export function AiCoachSheet({ tactic, onClose }: Props) {
         {state.kind === 'ok' && (
           <>
             <div className="coach-note">{state.res.coachNote}</div>
+            <p className="hint small">モデル: {state.res.model}</p>
             <ul className="drill-list">
               {state.res.drills.map((d, i) => (
                 <li key={i} className={`drill ${picked.has(i) ? 'on' : ''}`} onClick={() => !saved && toggle(i)}>

@@ -78,8 +78,10 @@ export interface Settings {
   myHand: Handedness
   defaultOppHand: Handedness
   strokeOrder: StrokeType[]
-  /** AI コーチ用。端末内にのみ保存される */
-  anthropicApiKey?: string
+  /** AI コーチ用（Google Gemini）。端末内にのみ保存される */
+  geminiApiKey?: string
+  /** モデル名の手動指定。空なら最新の Pro 系を自動選択 */
+  geminiModel?: string
   /** 自分のプレースタイルの説明（AI コーチに渡す） */
   playerProfile?: string
 }

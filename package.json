@@ -10,7 +10,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.124.0",
     "dexie": "^4.4.5",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

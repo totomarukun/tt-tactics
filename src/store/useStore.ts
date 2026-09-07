@@ -215,7 +215,7 @@ export const useStore = create<State>((set, get) => ({
   },
 
   exportData: () => {
-    const { anthropicApiKey: _omit, ...settings } = get().settings
+    const { geminiApiKey: _omit, ...settings } = get().settings
     void _omit
     return {
       app: 'tt-tactics',
@@ -239,8 +239,8 @@ export const useStore = create<State>((set, get) => ({
     if (file.tasks) await db.tasks.bulkPut(file.tasks)
     if (file.logs) await db.logs.bulkPut(file.logs)
     if (file.settings) {
-      const keep = get().settings.anthropicApiKey
-      await db.settings.put({ key: 'main', value: { ...DEFAULT_SETTINGS, ...file.settings, anthropicApiKey: keep } })
+      const keep = get().settings.geminiApiKey
+      await db.settings.put({ key: 'main', value: { ...DEFAULT_SETTINGS, ...file.settings, geminiApiKey: keep } })
     }
     await get().load()
     return file.tactics.length
