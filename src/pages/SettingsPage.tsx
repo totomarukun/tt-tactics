@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { BottomNav } from '../components/BottomNav'
+import { ProfileSheet } from '../components/ProfileSheet'
+import { profileIsFilled } from '../domain/profile'
 import type { Handedness } from '../domain/types'
 import { useStore, type ExportFile } from '../store/useStore'
 
@@ -9,7 +11,7 @@ export function SettingsPage() {
   const [msg, setMsg] = useState<string | null>(null)
   const [keyDraft, setKeyDraft] = useState(settings.geminiApiKey ?? '')
   const [modelDraft, setModelDraft] = useState(settings.geminiModel ?? '')
-  const [profileDraft, setProfileDraft] = useState(settings.playerProfile ?? '')
+  const [profileOpen, setProfileOpen] = useState(false)
   void navigate
 
   const doExport = async () => {
@@ -102,16 +104,13 @@ export function SettingsPage() {
             onBlur={() => updateSettings({ geminiModel: modelDraft.trim() || undefined })}
           />
         </label>
-        <label className="field">
-          <span>自分のプレースタイル（AI に渡す情報）</span>
-          <textarea
-            rows={3}
-            value={profileDraft}
-            placeholder="例: シェークハンド両ハンドドライブ型。両面裏ソフト。バックのチキータが得意、フォアの決定力が課題"
-            onChange={(e) => setProfileDraft(e.target.value)}
-            onBlur={() => updateSettings({ playerProfile: profileDraft.trim() || undefined })}
-          />
-        </label>
+        <div className="field">
+          <span>プレースタイル診断</span>
+          <button className="secondary full" onClick={() => setProfileOpen(true)}>
+            {profileIsFilled(settings) ? '診断内容を編集' : '診断を入力する'}
+          </button>
+          <p className="hint small">戦型・強み・弱み・目指すプレーなど。AI コーチの戦術提案と練習メニューの材料になります。</p>
+        </div>
       </section>
 
       <section className="settings-section">
@@ -148,6 +147,7 @@ export function SettingsPage() {
         <h2>このアプリについて</h2>
         <p className="hint small">tt-tactics v0.4 — 卓球の戦術を台の図と分岐図で整理し、練習課題につなげる個人用ノート。</p>
       </section>
+      {profileOpen && <ProfileSheet onClose={() => setProfileOpen(false)} />}
       <BottomNav />
     </div>
   )

@@ -880,3 +880,91 @@ textarea.full {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---- AI tactic proposal ---- */
+.ai-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: linear-gradient(135deg, #1d5fa8, #2b6cb0 60%, #3182ce);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(29, 95, 168, 0.35);
+}
+.ai-cta-icon {
+  font-size: 22px;
+}
+.ai-cta strong {
+  display: block;
+  font-size: 15px;
+}
+.ai-cta small {
+  display: block;
+  font-size: 12px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.profile-preview {
+  white-space: pre-wrap;
+  font: inherit;
+  font-size: 13px;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0 0 8px;
+  color: #4a5568;
+}
+.drill.proposal .drill-head {
+  flex-wrap: wrap;
+}
+.proposal-body {
+  display: flex;
+  gap: 10px;
+  margin: 8px 0 4px 0;
+}
+.proposal-mini {
+  width: 64px;
+  flex: none;
+}
+.proposal-mini svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.proposal-text {
+  flex: 1;
+  min-width: 0;
+}
+.proposal-text .drill-purpose,
+.proposal-text .drill-detail {
+  margin-left: 0;
+}
+.proposal-tree {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: 12px;
+}
+.proposal-tree li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 0;
+}
+.proposal-tree .dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--me);
+}
+.proposal-tree li.opp .dot {
+  background: var(--opp);
+}
+.proposal-tree .star {
+  color: var(--star);
+}

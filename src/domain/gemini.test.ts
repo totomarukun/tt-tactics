@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pickModel } from './ai'
+import { pickModel } from './gemini'
 
 const m = (name: string, methods = ['generateContent']) => ({ name: `models/${name}`, supportedGenerationMethods: methods })
 

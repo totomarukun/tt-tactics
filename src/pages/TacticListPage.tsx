@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { AiTacticSheet } from '../components/AiTacticSheet'
 import { BottomNav } from '../components/BottomNav'
 import { TacticCard } from '../components/TacticCard'
 import { TacticMetaForm } from '../components/TacticMetaForm'
@@ -12,6 +13,7 @@ export function TacticListPage() {
   const [filter, setFilter] = useState<Filter>('all')
   const [tag, setTag] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
 
   const allTags = useMemo(() => {
     const s = new Set<string>()
@@ -42,6 +44,14 @@ export function TacticListPage() {
           </button>
         ))}
       </div>
+
+      <button className="ai-cta" onClick={() => setAiOpen(true)}>
+        <span className="ai-cta-icon">✦</span>
+        <span>
+          <strong>AI コーチに戦術を提案してもらう</strong>
+          <small>強み・弱み・目指すプレーから、あなた向けの展開を組み立てます</small>
+        </span>
+      </button>
 
       {tactics.length === 0 ? (
         <div className="empty">
@@ -83,6 +93,7 @@ export function TacticListPage() {
           }}
         />
       )}
+      {aiOpen && <AiTacticSheet onClose={() => setAiOpen(false)} />}
       <BottomNav />
     </div>
   )

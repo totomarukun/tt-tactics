@@ -82,8 +82,25 @@ export interface Settings {
   geminiApiKey?: string
   /** モデル名の手動指定。空なら最新の Pro 系を自動選択 */
   geminiModel?: string
-  /** 自分のプレースタイルの説明（AI コーチに渡す） */
+  /** 自分のプレースタイルの自由記述（AI に渡す） */
   playerProfile?: string
+  /** プレースタイル診断（AI に渡す構造化情報） */
+  profile?: PlayerProfile
+}
+
+export type Grip = 'shake' | 'pen_jp' | 'pen_cn'
+export type Rubber = 'inverted' | 'short_pips' | 'long_pips' | 'anti'
+export interface PlayerProfile {
+  grip?: Grip
+  foreRubber?: Rubber
+  backRubber?: Rubber
+  styles: string[]        // 例: 両ハンドドライブ, 前陣速攻
+  strengths: string[]     // 例: フォアドライブの威力
+  weaknesses: string[]    // 例: 台上処理
+  serves: string[]        // 得意サーブ
+  troubles: string[]      // 苦手な相手タイプ
+  goals: string           // こういうプレーがしたい
+  level?: string          // 競技レベル
 }
 
 // ---- Phase 2: 練習課題と練習ログ ----

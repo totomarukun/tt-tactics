@@ -1,4 +1,6 @@
+import { geminiJson } from './gemini'
 import { nodeLabel } from './presets'
+import { profileToText } from './profile'
 import type { Settings, ShotNode, Tactic, Task } from './types'
 
 export interface DrillProposal {
@@ -15,8 +17,6 @@ export interface CoachResponse {
   /** 実際に使ったモデル名 */
   model: string
 }
-
-const API = 'https://generativelanguage.googleapis.com/v1beta'
 
 /** ツリーの全経路を「1. 自分 ... → 2. 相手 ...」の行に展開する */
 export function tacticToText(t: Tactic): string {
@@ -84,101 +84,17 @@ const DRILLS_SCHEMA = {
   required: ['coachNote', 'drills'],
 }
 
-interface ModelInfo {
-  name: string // "models/gemini-2.5-pro"
-  supportedGenerationMethods?: string[]
-}
-
-/** 利用可能なモデルから、最新世代の Pro 系を選ぶ。Pro がなければ Flash */
-export function pickModel(models: ModelInfo[]): string | null {
-  const cands = models
-    .filter((m) => (m.supportedGenerationMethods ?? []).includes('generateContent'))
-    .map((m) => m.name.replace(/^models\//, ''))
-    .map((id) => {
-      const mm = id.match(/^gemini-(\d+(?:\.\d+)?)-(pro|flash)(?!-lite)(?:-preview)?(?:-\d+)?$/)
-      if (!mm) return null
-      return { id, ver: parseFloat(mm[1]), tier: mm[2], preview: id.includes('preview'), dated: /-\d{2,}$/.test(id) }
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null)
-  cands.sort((a, b) => {
-    if (a.tier !== b.tier) return a.tier === 'pro' ? -1 : 1
-    if (a.ver !== b.ver) return b.ver - a.ver
-    if (a.dated !== b.dated) return a.dated ? 1 : -1 // 日付付きより無印のエイリアスを優先
-    if (a.preview !== b.preview) return a.preview ? 1 : -1
-    return a.id.localeCompare(b.id)
-  })
-  return cands[0]?.id ?? null
-}
-
-const FALLBACK_MODELS = ['gemini-2.5-pro', 'gemini-2.5-flash']
-
-async function resolveModel(apiKey: string, override?: string): Promise<string> {
-  if (override?.trim()) return override.trim().replace(/^models\//, '')
-  try {
-    const res = await fetch(`${API}/models?pageSize=200`, { headers: { 'x-goog-api-key': apiKey } })
-    if (res.ok) {
-      const data = (await res.json()) as { models?: ModelInfo[] }
-      const picked = pickModel(data.models ?? [])
-      if (picked) return picked
-    }
-  } catch {
-    /* 一覧が取れなければ既定へ */
-  }
-  return FALLBACK_MODELS[0]
-}
-
-function extractError(status: number, body: string): string {
-  try {
-    const j = JSON.parse(body) as { error?: { message?: string } }
-    if (j.error?.message) return `${status}: ${j.error.message}`
-  } catch {
-    /* noop */
-  }
-  return `${status}: ${body.slice(0, 200)}`
-}
-
 export async function suggestDrills(tactic: Tactic, settings: Settings, existingTasks: Task[]): Promise<CoachResponse> {
-  const apiKey = settings.geminiApiKey?.trim()
-  if (!apiKey) throw new Error('設定画面で Gemini の API キーを登録してください')
-
-  const model = await resolveModel(apiKey, settings.geminiModel)
-
-  const profile = [`利き手: ${settings.myHand === 'left' ? '左' : '右'}`, settings.playerProfile?.trim() || 'シェークハンド、両ハンドドライブ型'].join('\n')
   const existing = existingTasks.length
     ? `\n\nすでに登録済みの練習課題（重複しない提案にすること）:\n${existingTasks.map((t) => `- ${t.title}`).join('\n')}`
     : ''
-  const user = `【選手のプロフィール】\n${profile}\n\n【戦術】\n${tacticToText(tactic)}${existing}\n\nこの戦術を実戦で決められるようにする練習メニューを提案してください。`
-
-  const res = await fetch(`${API}/models/${model}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM }] },
-      contents: [{ role: 'user', parts: [{ text: user }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseJsonSchema: DRILLS_SCHEMA,
-        temperature: 0.7,
-      },
-    }),
-  })
-  if (!res.ok) throw new Error(`Gemini API エラー ${extractError(res.status, await res.text())}`)
-
-  const data = (await res.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[]
-    promptFeedback?: { blockReason?: string }
-  }
-  if (data.promptFeedback?.blockReason) throw new Error(`Gemini がリクエストをブロックしました（${data.promptFeedback.blockReason}）`)
-  const cand = data.candidates?.[0]
-  const text = (cand?.content?.parts ?? []).map((p) => p.text ?? '').join('')
-  if (!text) throw new Error(`Gemini から本文が返りませんでした（finishReason: ${cand?.finishReason ?? '不明'}）`)
-
-  let parsed: { drills?: DrillProposal[]; coachNote?: string }
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    throw new Error('Gemini の応答を JSON として解釈できませんでした')
-  }
-  if (!Array.isArray(parsed.drills)) throw new Error('Gemini の応答に練習メニューが含まれていません')
-  return { drills: parsed.drills, coachNote: parsed.coachNote ?? '', model }
+  const user = `【選手のプロフィール】\n${profileToText(settings)}\n\n【戦術】\n${tacticToText(tactic)}${existing}\n\nこの戦術を実戦で決められるようにする練習メニューを提案してください。`
+  const { data, model } = await geminiJson<{ drills?: DrillProposal[]; coachNote?: string }>(
+    settings,
+    SYSTEM,
+    [{ role: 'user', text: user }],
+    DRILLS_SCHEMA,
+  )
+  if (!Array.isArray(data.drills)) throw new Error('Gemini の応答に練習メニューが含まれていません')
+  return { drills: data.drills, coachNote: data.coachNote ?? '', model }
 }
