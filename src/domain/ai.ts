@@ -1,4 +1,5 @@
 import { geminiJson } from './gemini'
+import { knowledgeBlock } from './knowledge'
 import { nodeLabel } from './presets'
 import { profileToText } from './profile'
 import type { Settings, ShotNode, Tactic, Task } from './types'
@@ -91,7 +92,7 @@ export async function suggestDrills(tactic: Tactic, settings: Settings, existing
   const user = `【選手のプロフィール】\n${profileToText(settings)}\n\n【戦術】\n${tacticToText(tactic)}${existing}\n\nこの戦術を実戦で決められるようにする練習メニューを提案してください。`
   const { data, model } = await geminiJson<{ drills?: DrillProposal[]; coachNote?: string }>(
     settings,
-    SYSTEM,
+    SYSTEM + knowledgeBlock(settings),
     [{ role: 'user', text: user }],
     DRILLS_SCHEMA,
   )

@@ -86,6 +86,8 @@ export interface Settings {
   playerProfile?: string
   /** プレースタイル診断（AI に渡す構造化情報） */
   profile?: PlayerProfile
+  /** コーチへの追加知識・指導方針（知識ベースに追記される） */
+  coachNotes?: string
 }
 
 export type Grip = 'shake' | 'pen_jp' | 'pen_cn'
