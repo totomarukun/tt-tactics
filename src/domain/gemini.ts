@@ -51,13 +51,26 @@ export async function resolveModel(apiKey: string, override?: string): Promise<s
 }
 
 function extractError(status: number, body: string): string {
+  let msg = body.slice(0, 200)
   try {
     const j = JSON.parse(body) as { error?: { message?: string } }
-    if (j.error?.message) return `${status}: ${j.error.message}`
+    if (j.error?.message) msg = j.error.message
   } catch {
     /* noop */
   }
-  return `${status}: ${body.slice(0, 200)}`
+  if (status === 429 && /spending cap/i.test(msg)) {
+    return '429: Google 側の月間支出上限に達しています。https://ai.studio/spend で上限を上げるか、設定のモデル名に gemini-2.5-flash（無料枠あり）を指定してください。'
+  }
+  if (status === 429) {
+    return '429: 呼び出し回数の上限です。1分ほど待ってから再度お試しください。続く場合は設定のモデル名に gemini-2.5-flash を指定してください。'
+  }
+  if (status === 400 && /API key not valid/i.test(msg)) {
+    return '400: API キーが無効です。設定画面のキーを確認してください。'
+  }
+  if (status === 404) {
+    return `404: 指定したモデルが見つかりません。設定のモデル名を空にするか、別の名前にしてください。（${msg}）`
+  }
+  return `${status}: ${msg}`
 }
 
 export interface GeminiTurn {
