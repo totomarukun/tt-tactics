@@ -1,5 +1,5 @@
 import type { Hand, ServeMotion, Settings, ShotNode, StrokeType } from './types'
-import { SPIN_LABEL } from './spin'
+import { HEIGHT_LABEL, SPIN_LABEL } from './spin'
 import { COL_LABEL, zoneShortLabel } from './zone'
 
 export const STROKE_LABEL: Record<StrokeType, string> = {
@@ -61,7 +61,8 @@ export function strokeText(n: ShotNode): string {
     return [spin, `${motion}サーブ`, from].filter(Boolean).join(' ')
   }
   const hand = n.hand ?? ''
-  return `${hand}${STROKE_LABEL[n.stroke]}${spin ? `(${spin})` : ''}`
+  const extra = [spin, n.height ? HEIGHT_LABEL[n.height] : ''].filter(Boolean).join('・')
+  return `${hand}${STROKE_LABEL[n.stroke]}${extra ? `(${extra})` : ''}`
 }
 
 export function nodeLabel(n: ShotNode): string {

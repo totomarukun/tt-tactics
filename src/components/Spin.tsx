@@ -9,15 +9,18 @@ interface GlyphProps {
   cx?: number
   cy?: number
   asGroup?: boolean
+  /** 左右を反転（相手の球・左利きの打者用） */
+  flipX?: boolean
 }
 
 /**
  * ボールの上に回転方向の矢印を描く。
- * 上向き=上回転、下向き=下回転、左=順横、右=逆横。ナックルは点。
+ * 上向き=上回転、下向き=下回転、左右=曲がる方向（打者から見て）。ナックルは点。
  */
-export function SpinGlyph({ spin, size = 22, color = '#1a202c', cx = 0, cy = 0, asGroup }: GlyphProps) {
+export function SpinGlyph({ spin, size = 22, color = '#1a202c', cx = 0, cy = 0, asGroup, flipX }: GlyphProps) {
   const r = size / 2
-  const v = SPIN_VECTOR[spin]
+  const raw = SPIN_VECTOR[spin]
+  const v = flipX ? { x: -raw.x, y: raw.y } : raw
   const len = Math.hypot(v.x, v.y)
   const ux = len ? v.x / len : 0
   const uy = len ? v.y / len : 0
@@ -66,8 +69,8 @@ export function SpinPicker({ value, onChange }: PickerProps) {
   return (
     <div className="spin-picker" role="group" aria-label="回転">
       <span className="spin-axis top">上回転</span>
-      <span className="spin-axis left">順横</span>
-      <span className="spin-axis right">逆横</span>
+      <span className="spin-axis left">逆横</span>
+      <span className="spin-axis right">順横</span>
       <span className="spin-axis bottom">下回転</span>
       <div className="spin-grid">
         {SPIN_GRID.flat().map((s) => (

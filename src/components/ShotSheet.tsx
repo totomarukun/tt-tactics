@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { HAND_LABEL, SERVE_MOTIONS, SERVE_MOTION_LABEL, STROKE_LABEL } from '../domain/presets'
-import type { Col, Hand, Hands, Player, ServeMotion, ShotNode, Spin, StrokeType, Zone } from '../domain/types'
+import type { BallHeight, Col, Hand, Hands, Player, ServeMotion, ShotNode, Spin, StrokeType, Zone } from '../domain/types'
+import { HEIGHT_LABEL } from '../domain/spin'
 import { COL_LABEL, DEPTH_LONG_LABEL, zoneLabel } from '../domain/zone'
 import { SpinPicker } from './Spin'
 import { TableDiagram } from './TableDiagram'
@@ -36,6 +37,7 @@ export function ShotSheet({
   const [serveMotion, setServeMotion] = useState<ServeMotion | undefined>(initial?.serveMotion ?? (isServe ? 'forehand' : undefined))
   const [serveFrom, setServeFrom] = useState<Col | undefined>(initial?.serveFrom)
   const [spin, setSpin] = useState<Spin | undefined>(initial?.spin)
+  const [height, setHeight] = useState<BallHeight | undefined>(initial?.height)
   const [isFinisher, setFinisher] = useState(!!initial?.isFinisher)
   const [note, setNote] = useState(initial?.note ?? '')
 
@@ -50,6 +52,7 @@ export function ShotSheet({
     serveMotion: isServe ? serveMotion : undefined,
     serveFrom: isServe && player === 'me' ? serveFrom : undefined,
     spin,
+    height,
     isFinisher,
     note: note.trim() || undefined,
   })
@@ -143,6 +146,16 @@ export function ShotSheet({
           </>
         )}
 
+        <div className="chip-group">
+          <span className="chip-label">高さ</span>
+          {(Object.keys(HEIGHT_LABEL) as BallHeight[]).map((h) => (
+            <button key={h} className={`chip ${height === h ? 'on' : ''}`} onClick={() => setHeight(height === h ? undefined : h)}>
+              {HEIGHT_LABEL[h]}
+            </button>
+          ))}
+          <span className="hint small">未選択＝普通</span>
+        </div>
+
         <div className="chip-group spin-row">
           <span className="chip-label">回転{isServe ? '' : '（任意）'}</span>
           <SpinPicker value={spin} onChange={setSpin} />
@@ -161,14 +174,14 @@ export function ShotSheet({
         </div>
 
         <div className="sheet-foot">
-          <button className="primary" disabled={!ready} onClick={() => onSave(build(), false)}>
-            保存
-          </button>
           {allowNext && (
-            <button className="secondary" disabled={!ready} onClick={() => onSave(build(), true)}>
+            <button className="primary" disabled={!ready} onClick={() => onSave(build(), true)}>
               保存して次の球へ
             </button>
           )}
+          <button className={allowNext ? 'secondary' : 'primary'} disabled={!ready} onClick={() => onSave(build(), false)}>
+            保存{allowNext ? 'して閉じる' : ''}
+          </button>
         </div>
       </div>
     </div>

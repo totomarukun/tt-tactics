@@ -15,6 +15,7 @@ import {
   zoneKey,
   zoneRect,
 } from '../domain/zone'
+import { curveDirOnScreen } from '../domain/spin'
 import { SpinGlyph } from './Spin'
 
 // 台の上での色。自分＝白、相手＝赤（青い台の上で見分けやすい組み合わせ）
@@ -237,13 +238,13 @@ export function TableDiagram({
           const end = shorten(from, p, R + 2)
           const start = i === 0 ? from : shorten(p, from, R + 2)
           const color = path[i].player === 'me' ? ME_COLOR : OPP_COLOR
-          // 進行方向の右側に少し膨らませ、往復で重ならないようにする
-          const dx = end.x - start.x
-          const dy = end.y - start.y
-          const len = Math.hypot(dx, dy) || 1
-          const bend = Math.min(28, len * 0.12)
-          const cx = (start.x + end.x) / 2 - (dy / len) * bend
-          const cy = (start.y + end.y) / 2 + (dx / len) * bend
+          // 横回転があれば、打者から見て曲がる方向へ膨らませる。なければ直線
+          const hitterHand = path[i].player === 'me' ? hands.me : hands.opp
+          const dir = curveDirOnScreen(path[i].spin, path[i].player, hitterHand)
+          const len = Math.hypot(end.x - start.x, end.y - start.y) || 1
+          const bend = dir * Math.min(60, len * 0.28)
+          const cx = (start.x + end.x) / 2 + bend
+          const cy = (start.y + end.y) / 2
           return (
             <path
               key={`l${path[i].id}`}
@@ -283,7 +284,25 @@ export function TableDiagram({
               >
                 {i + 1}
               </text>
-              {!compact && n.spin && <SpinGlyph spin={n.spin} size={18} color="#1a202c" cx={p.x + R + 6} cy={p.y - R - 2} asGroup />}
+              {!compact && n.spin && (
+                <SpinGlyph
+                  spin={n.spin}
+                  size={18}
+                  color="#1a202c"
+                  cx={p.x + R + 6}
+                  cy={p.y - R - 2}
+                  flipX={(n.player === 'opp') !== ((me ? hands.me : hands.opp) === 'left')}
+                  asGroup
+                />
+              )}
+              {!compact && n.height && (
+                <g transform={`translate(${p.x + R + 2},${p.y + R - 4})`}>
+                  <rect x={0} y={-8} width={22} height={14} rx={4} fill="#1a202c" opacity={0.85} />
+                  <text x={11} y={3} textAnchor="middle" fill="#fff" fontSize={9} fontFamily="system-ui, sans-serif">
+                    {n.height === 'high' ? '高' : '低'}
+                  </text>
+                </g>
+              )}
             </g>
           )
         })}

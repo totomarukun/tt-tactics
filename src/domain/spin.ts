@@ -12,24 +12,28 @@ export const SPIN_LABEL: Record<Spin, string> = {
   under_rev: '逆横下',
 }
 
-/** 3x3 ピッカーの並び（上段=上回転、左列=順横、右列=逆横） */
+/** 3x3 ピッカーの並び。上段=上回転。右列=順横（右利きの打者から見て右に曲がる）、左列=逆横 */
 export const SPIN_GRID: Spin[][] = [
-  ['top_fwd', 'top', 'top_rev'],
-  ['side_fwd', 'none', 'side_rev'],
-  ['under_fwd', 'under', 'under_rev'],
+  ['top_rev', 'top', 'top_fwd'],
+  ['side_rev', 'none', 'side_fwd'],
+  ['under_rev', 'under', 'under_fwd'],
 ]
 
-/** 矢印の向き。x: -1=順横 / +1=逆横、y: -1=上回転 / +1=下回転 */
+/**
+ * 矢印の向き。y: -1=上回転 / +1=下回転。
+ * x は右利きの打者から見た曲がる方向。+1=順横（右へ曲がる）、-1=逆横（左へ曲がる）。
+ * 左利きの打者は左右反転する。
+ */
 export const SPIN_VECTOR: Record<Spin, { x: number; y: number }> = {
-  top_fwd: { x: -1, y: -1 },
+  top_fwd: { x: 1, y: -1 },
   top: { x: 0, y: -1 },
-  top_rev: { x: 1, y: -1 },
-  side_fwd: { x: -1, y: 0 },
+  top_rev: { x: -1, y: -1 },
+  side_fwd: { x: 1, y: 0 },
   none: { x: 0, y: 0 },
-  side_rev: { x: 1, y: 0 },
-  under_fwd: { x: -1, y: 1 },
+  side_rev: { x: -1, y: 0 },
+  under_fwd: { x: 1, y: 1 },
   under: { x: 0, y: 1 },
-  under_rev: { x: 1, y: 1 },
+  under_rev: { x: -1, y: 1 },
 }
 
 /** 旧データ（v0.1）の回転・サーブ種類を新形式に変換する */
@@ -49,4 +53,15 @@ export function migrateLegacySpin(spin: unknown, serveType: unknown): { spin?: S
   }
   if (typeof serveType === 'string' && legacyServe[serveType]) Object.assign(out, legacyServe[serveType])
   return out
+}
+
+export const HEIGHT_LABEL = { low: '低い', high: '高い' } as const
+
+/** 打者から見た曲がる方向を画面上の x 方向（+1=右）に変換する */
+export function curveDirOnScreen(spin: Spin | undefined, player: 'me' | 'opp', hand: 'right' | 'left'): number {
+  if (!spin) return 0
+  let x = SPIN_VECTOR[spin].x
+  if (hand === 'left') x = -x
+  if (player === 'opp') x = -x // 向かい合っているので左右が逆
+  return x
 }
