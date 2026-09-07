@@ -15,7 +15,8 @@ const serve = (): ShotNode =>
     player: 'me',
     zone: { side: 'opp', col: 'F', depth: 'S' },
     stroke: 'serve',
-    serveType: 'under',
+    serveMotion: 'forehand',
+    spin: 'under',
     serveFrom: 'B',
   })
 const push = (): ShotNode =>

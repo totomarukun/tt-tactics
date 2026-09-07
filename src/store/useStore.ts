@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { db } from './db'
 import { DEFAULT_SETTINGS } from '../domain/presets'
+import { SPIN_LABEL, migrateLegacySpin } from '../domain/spin'
 import { newId } from '../domain/tree'
-import type { Settings, Tactic } from '../domain/types'
+import type { Settings, ShotNode, Tactic } from '../domain/types'
 
 export type View =
   | { name: 'list' }
@@ -36,6 +37,29 @@ interface State {
 
 const now = () => new Date().toISOString()
 
+/** v0.1 形式（serveType / 旧 Spin）のノードを新形式に変換する。変更がなければ同じ参照を返す */
+function migrateNode(n: ShotNode): ShotNode {
+  const legacy = n as ShotNode & { serveType?: unknown }
+  const oldSpin = n.spin as unknown
+  const needs =
+    legacy.serveType !== undefined ||
+    (typeof oldSpin === 'string' && !(oldSpin in SPIN_LABEL))
+  const children = n.children.map(migrateNode)
+  const childrenChanged = children.some((c, i) => c !== n.children[i])
+  if (!needs && !childrenChanged) return n
+  if (!needs) return { ...n, children }
+  const conv = migrateLegacySpin(oldSpin, legacy.serveType)
+  const { serveType: _drop, ...rest } = legacy
+  void _drop
+  return { ...rest, spin: conv.spin, serveMotion: conv.serveMotion ?? n.serveMotion, children }
+}
+
+function migrateTactic(t: Tactic): Tactic {
+  if (!t.root) return t
+  const root = migrateNode(t.root)
+  return root === t.root ? t : { ...t, root }
+}
+
 export const useStore = create<State>((set, get) => ({
   loaded: false,
   tactics: [],
@@ -49,8 +73,12 @@ export const useStore = create<State>((set, get) => ({
       db.tactics.orderBy('updatedAt').reverse().toArray(),
       db.settings.get('main'),
     ])
+    const migrated = tactics.map(migrateTactic)
+    await Promise.all(
+      migrated.filter((t, i) => t !== tactics[i]).map((t) => db.tactics.put(t)),
+    )
     set({
-      tactics,
+      tactics: migrated,
       settings: { ...DEFAULT_SETTINGS, ...(row?.value ?? {}) },
       loaded: true,
     })

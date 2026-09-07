@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { HAND_LABEL, SERVE_LABEL, SERVE_TYPES, SPINS, SPIN_LABEL, STROKE_LABEL } from '../domain/presets'
-import type { Col, Hand, Hands, Player, ServeType, ShotNode, Spin, StrokeType, Zone } from '../domain/types'
-import { COL_LABEL, zoneLabel } from '../domain/zone'
+import { HAND_LABEL, SERVE_MOTIONS, SERVE_MOTION_LABEL, STROKE_LABEL } from '../domain/presets'
+import type { Col, Hand, Hands, Player, ServeMotion, ShotNode, Spin, StrokeType, Zone } from '../domain/types'
+import { COL_LABEL, DEPTH_LONG_LABEL, zoneLabel } from '../domain/zone'
+import { SpinPicker } from './Spin'
 import { TableDiagram } from './TableDiagram'
 
 export type ShotData = Omit<ShotNode, 'id' | 'children'>
@@ -32,21 +33,21 @@ export function ShotSheet({
   const [zone, setZone] = useState<Zone | null>(initial?.zone ?? null)
   const [stroke, setStroke] = useState<StrokeType>(initial?.stroke ?? (isServe ? 'serve' : strokeOrder[0]))
   const [hand, setHand] = useState<Hand | undefined>(initial?.hand)
-  const [serveType, setServeType] = useState<ServeType | undefined>(initial?.serveType)
+  const [serveMotion, setServeMotion] = useState<ServeMotion | undefined>(initial?.serveMotion ?? (isServe ? 'forehand' : undefined))
   const [serveFrom, setServeFrom] = useState<Col | undefined>(initial?.serveFrom)
   const [spin, setSpin] = useState<Spin | undefined>(initial?.spin)
   const [isFinisher, setFinisher] = useState(!!initial?.isFinisher)
   const [note, setNote] = useState(initial?.note ?? '')
 
   const tapSide = player === 'me' ? 'opp' : 'me'
-  const ready = !!zone && (!isServe || (!!serveType && (player === 'opp' || !!serveFrom)))
+  const ready = !!zone && (!isServe || (!!spin && (player === 'opp' || !!serveFrom)))
 
   const build = (): ShotData => ({
     player,
     zone: zone!,
     stroke: isServe ? 'serve' : stroke,
-    hand,
-    serveType: isServe ? serveType : undefined,
+    hand: isServe ? undefined : hand,
+    serveMotion: isServe ? serveMotion : undefined,
     serveFrom: isServe && player === 'me' ? serveFrom : undefined,
     spin,
     isFinisher,
@@ -70,7 +71,9 @@ export function ShotSheet({
         </div>
 
         <p className="hint">
-          {zone ? `着点: ${zoneLabel(zone)}` : `${player === 'me' ? '相手' : '自分'}コートの着点をタップ`}
+          {zone
+            ? `着点: ${zoneLabel(zone)}（${DEPTH_LONG_LABEL[zone.depth]}）`
+            : `${player === 'me' ? '相手' : '自分'}コートの着点をタップ。前＝台上2バウンド、ハーフ＝出るか出ないか、奥＝ロング`}
         </p>
         <TableDiagram
           path={initial ? contextPath.slice(0, -1) : contextPath}
@@ -99,14 +102,14 @@ export function ShotSheet({
               </div>
             )}
             <div className="chip-group">
-              <span className="chip-label">サーブ</span>
-              {SERVE_TYPES.map((s) => (
+              <span className="chip-label">出し方</span>
+              {SERVE_MOTIONS.map((m) => (
                 <button
-                  key={s}
-                  className={`chip ${serveType === s ? 'on' : ''}`}
-                  onClick={() => setServeType(s)}
+                  key={m}
+                  className={`chip ${serveMotion === m ? 'on' : ''}`}
+                  onClick={() => setServeMotion(m)}
                 >
-                  {SERVE_LABEL[s]}
+                  {SERVE_MOTION_LABEL[m]}
                 </button>
               ))}
             </div>
@@ -137,20 +140,13 @@ export function ShotSheet({
                 </button>
               ))}
             </div>
-            <div className="chip-group">
-              <span className="chip-label">回転</span>
-              {SPINS.map((s) => (
-                <button
-                  key={s}
-                  className={`chip ${spin === s ? 'on' : ''}`}
-                  onClick={() => setSpin(spin === s ? undefined : s)}
-                >
-                  {SPIN_LABEL[s]}
-                </button>
-              ))}
-            </div>
           </>
         )}
+
+        <div className="chip-group spin-row">
+          <span className="chip-label">回転{isServe ? '' : '（任意）'}</span>
+          <SpinPicker value={spin} onChange={setSpin} />
+        </div>
 
         <div className="chip-group">
           <button className={`chip star-chip ${isFinisher ? 'on' : ''}`} onClick={() => setFinisher(!isFinisher)}>

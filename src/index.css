@@ -523,3 +523,60 @@ button.icon:active {
 .btn-row button {
   flex: 1;
 }
+
+/* ---- spin picker ---- */
+.spin-row {
+  align-items: flex-start;
+}
+.spin-picker {
+  position: relative;
+  padding: 16px 40px;
+}
+.spin-axis {
+  position: absolute;
+  font-size: 11px;
+  color: var(--muted);
+}
+.spin-axis.top {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.spin-axis.bottom {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.spin-axis.left {
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.spin-axis.right {
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.spin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 64px);
+  gap: 4px;
+}
+.spin-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 11px;
+  color: var(--muted);
+}
+.spin-cell.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}

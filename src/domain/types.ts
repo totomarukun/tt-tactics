@@ -12,15 +12,7 @@ export type Player = 'me' | 'opp'
 export type Hand = 'F' | 'B'
 export type Handedness = 'right' | 'left'
 
-export type ServeType =
-  | 'under'
-  | 'top'
-  | 'side_r'
-  | 'side_l'
-  | 'knuckle'
-  | 'yg'
-  | 'makikomi'
-  | 'backhand'
+export type ServeMotion = 'forehand' | 'backhand' | 'yg' | 'makikomi' | 'squat'
 
 export type StrokeType =
   | 'serve'
@@ -37,7 +29,17 @@ export type StrokeType =
   | 'chop'
   | 'other'
 
-export type Spin = 'under' | 'top' | 'side' | 'none' | 'unknown'
+// 回転。fwd = 順横（フォア面の横回転）、rev = 逆横（YG・バック・巻き込み系）
+export type Spin =
+  | 'top_fwd'
+  | 'top'
+  | 'top_rev'
+  | 'side_fwd'
+  | 'none'
+  | 'side_rev'
+  | 'under_fwd'
+  | 'under'
+  | 'under_rev'
 
 export interface ShotNode {
   id: string
@@ -45,7 +47,7 @@ export interface ShotNode {
   zone: Zone
   stroke: StrokeType
   hand?: Hand
-  serveType?: ServeType
+  serveMotion?: ServeMotion          // サーブの出し方（stroke === serve のとき）
   serveFrom?: Col
   spin?: Spin
   isFinisher?: boolean
