@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
+import { AiCoachSheet } from '../components/AiCoachSheet'
+import { BottomNav } from '../components/BottomNav'
 import { ShotSheet, type ShotData } from '../components/ShotSheet'
+import { TaskSheet } from '../components/TaskSheet'
 import { ShotTree } from '../components/ShotTree'
 import { TableDiagram } from '../components/TableDiagram'
 import { TacticMetaForm, metaOf } from '../components/TacticMetaForm'
@@ -14,7 +17,9 @@ type Sheet =
   | { kind: 'edit'; id: string }
 
 export function TacticDetailPage({ id }: { id: string }) {
-  const { tactics, settings, navigate, updateTactic, deleteTactic } = useStore()
+  const { tactics, tasks, settings, navigate, updateTactic, deleteTactic, addTask, updateTask } = useStore()
+  const [aiOpen, setAiOpen] = useState(false)
+  const [newTask, setNewTask] = useState(false)
   const tactic = tactics.find((t) => t.id === id)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [sheet, setSheet] = useState<Sheet>({ kind: 'none' })
@@ -41,6 +46,7 @@ export function TacticDetailPage({ id }: { id: string }) {
   }
 
   const hands = { me: settings.myHand, opp: tactic.oppHand }
+  const linkedTasks = tasks.filter((t) => t.tacticIds.includes(tactic.id))
   const effectiveSelected = selectedId && findNode(root, selectedId) ? selectedId : (path[path.length - 1]?.id ?? null)
 
   const saveRoot = (next: ShotNode | null) => updateTactic(tactic.id, { root: next })
@@ -138,6 +144,53 @@ export function TacticDetailPage({ id }: { id: string }) {
         </div>
       )}
 
+      <div className="section-head">
+        <span>練習メニュー</span>
+        <span className="hint small">{linkedTasks.length} 件</span>
+      </div>
+      <div className="task-box">
+        {linkedTasks.length === 0 && <p className="hint small">この戦術に紐づく課題はまだありません。</p>}
+        <ul className="task-list plain">
+          {linkedTasks.map((t) => (
+            <li key={t.id} className={`task-row ${t.status}`}>
+              <button className="task-check" onClick={() => updateTask(t.id, { status: t.status === 'done' ? 'open' : 'done' })}>
+                {t.status === 'done' ? '☑' : '☐'}
+              </button>
+              <button className="task-main" onClick={() => navigate({ name: 'tasks' })}>
+                <div className="task-title">
+                  {t.title}
+                  {t.source === 'ai' && <span className="ai-badge">AI</span>}
+                </div>
+                {t.purpose && <div className="task-purpose">{t.purpose}</div>}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="btn-row">
+          <button className="primary" onClick={() => setAiOpen(true)} disabled={!root}>
+            AI コーチに提案してもらう
+          </button>
+          <button className="secondary" onClick={() => setNewTask(true)}>
+            手動で追加
+          </button>
+        </div>
+        {!root && <p className="hint small">球を入力してから AI コーチを呼んでください。</p>}
+      </div>
+
+      {aiOpen && <AiCoachSheet tactic={tactic} onClose={() => setAiOpen(false)} />}
+      {newTask && (
+        <TaskSheet
+          isNew
+          initial={{ title: '', purpose: '', detail: '', tacticIds: [tactic.id] }}
+          tactics={tactics}
+          onClose={() => setNewTask(false)}
+          onSave={async (dft) => {
+            await addTask(dft)
+            setNewTask(false)
+          }}
+        />
+      )}
+
       {sheetProps && (
         <ShotSheet
           key={`${sheet.kind}-${sheet.kind === 'edit' ? sheet.id : sheet.kind === 'add' ? sheet.parentId : ''}-${sheetProps.player}-${sheetProps.isServe}`}
@@ -169,6 +222,7 @@ export function TacticDetailPage({ id }: { id: string }) {
           }}
         />
       )}
+      <BottomNav />
     </div>
   )
 }

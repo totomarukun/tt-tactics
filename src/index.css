@@ -580,3 +580,303 @@ button.icon:active {
   color: var(--accent);
   font-weight: 700;
 }
+
+/* ---- bottom nav ---- */
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 7;
+}
+.bottom-nav button {
+  flex: 1;
+  max-width: 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.bottom-nav button.on {
+  color: var(--accent);
+  font-weight: 700;
+}
+.nav-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+.fab {
+  bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+/* ---- tasks ---- */
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.task-list.plain {
+  box-shadow: none;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line);
+}
+.task-row:last-child {
+  border-bottom: none;
+}
+.task-row.done .task-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.task-check {
+  flex: none;
+  width: 44px;
+  min-height: 48px;
+  font-size: 20px;
+  color: var(--accent);
+}
+.task-main {
+  flex: 1;
+  text-align: left;
+  padding: 10px 10px 10px 0;
+  min-width: 0;
+}
+.task-title {
+  font-weight: 600;
+  line-height: 1.3;
+}
+.task-purpose {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+  align-items: center;
+}
+.task-results {
+  font-size: 12px;
+  color: var(--star);
+  letter-spacing: 1px;
+}
+.tag.link {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.ai-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  vertical-align: middle;
+}
+.task-box {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.section-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 14px 6px 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  font: inherit;
+  resize: vertical;
+}
+.field textarea {
+  display: block;
+}
+
+/* ---- AI coach ---- */
+.spinner {
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 12px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.coach-note {
+  background: #fffbeb;
+  border-left: 3px solid var(--star);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+.drill-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.drill {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.drill.on {
+  border-color: var(--accent);
+  background: #f5f9ff;
+}
+.drill-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.drill-head .check {
+  color: var(--accent);
+  font-size: 18px;
+}
+.drill-title {
+  font-weight: 700;
+}
+.drill-target {
+  font-size: 12px;
+  color: var(--accent);
+  margin: 4px 0 2px 26px;
+}
+.drill-purpose {
+  font-size: 13px;
+  margin: 0 0 4px 26px;
+}
+.drill-detail {
+  font-size: 13px;
+  color: #4a5568;
+  margin-left: 26px;
+  white-space: pre-wrap;
+}
+
+/* ---- practice ---- */
+.today-badge {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  vertical-align: middle;
+}
+.link-btn {
+  color: var(--accent);
+  font-size: 13px;
+  padding: 0 4px 8px;
+}
+.practice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.practice-item {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 0 10px;
+}
+.practice-item:last-child {
+  border-bottom: none;
+}
+.practice-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+button.icon.small {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+}
+.task-detail {
+  font-size: 13px;
+  margin: 6px 0;
+}
+.task-detail summary {
+  color: var(--muted);
+  cursor: pointer;
+}
+.task-detail pre {
+  white-space: pre-wrap;
+  font: inherit;
+  margin: 6px 0 0;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+.note-input.full,
+.secondary.full,
+textarea.full {
+  width: 100%;
+  display: block;
+}
+.secondary.full {
+  margin-top: 8px;
+}
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.history-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.history-date {
+  flex: none;
+  color: var(--muted);
+  width: 70px;
+}
+.history-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

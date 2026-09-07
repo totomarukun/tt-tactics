@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { BottomNav } from '../components/BottomNav'
 import { TacticCard } from '../components/TacticCard'
 import { TacticMetaForm } from '../components/TacticMetaForm'
 import type { Situation } from '../domain/types'
@@ -25,10 +26,7 @@ export function TacticListPage() {
   return (
     <div className="page">
       <header className="app-bar">
-        <h1>tt-tactics</h1>
-        <button className="icon" onClick={() => navigate({ name: 'settings' })} aria-label="設定">
-          ⚙
-        </button>
+        <h1>戦術</h1>
       </header>
 
       <div className="chip-group filters">
@@ -85,6 +83,7 @@ export function TacticListPage() {
           }}
         />
       )}
+      <BottomNav />
     </div>
   )
 }

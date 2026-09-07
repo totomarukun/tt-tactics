@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { SPIN_GRID, SPIN_LABEL, SPIN_VECTOR } from '../domain/spin'
 import type { Spin } from '../domain/types'
 
@@ -9,47 +10,75 @@ interface GlyphProps {
   cx?: number
   cy?: number
   asGroup?: boolean
-  /** 左右を反転（相手の球・左利きの打者用） */
-  flipX?: boolean
+  /** 打者が左利きなら横回転の向きを反転 */
+  leftHanded?: boolean
+}
+
+function polar(r: number, deg: number) {
+  const a = (deg * Math.PI) / 180
+  return { x: r * Math.cos(a), y: r * Math.sin(a) }
 }
 
 /**
- * ボールの上に回転方向の矢印を描く。
- * 上向き=上回転、下向き=下回転、左右=曲がる方向（打者から見て）。ナックルは点。
+ * ボールを上から見た回転の図。
+ * 横回転: 順横＝時計回り、逆横＝反時計回りの円弧矢印（左利きは反転）。
+ * 上下回転: 中央に上向き／下向きの矢印。ナックルは点。
  */
-export function SpinGlyph({ spin, size = 22, color = '#1a202c', cx = 0, cy = 0, asGroup, flipX }: GlyphProps) {
+export function SpinGlyph({ spin, size = 22, color = '#1a202c', cx = 0, cy = 0, asGroup, leftHanded }: GlyphProps) {
   const r = size / 2
-  const raw = SPIN_VECTOR[spin]
-  const v = flipX ? { x: -raw.x, y: raw.y } : raw
-  const len = Math.hypot(v.x, v.y)
-  const ux = len ? v.x / len : 0
-  const uy = len ? v.y / len : 0
-  const a = r * 0.55
-  const x1 = -ux * a
-  const y1 = -uy * a
-  const x2 = ux * a
-  const y2 = uy * a
-  // 矢じり
-  const hx = -ux * r * 0.35
-  const hy = -uy * r * 0.35
-  const px = -uy
-  const py = ux
-  const head =
-    len === 0
-      ? null
-      : `M${x2},${y2} L${x2 + hx + px * r * 0.28},${y2 + hy + py * r * 0.28} L${x2 + hx - px * r * 0.28},${y2 + hy - py * r * 0.28} Z`
+  const v = SPIN_VECTOR[spin]
+  const side = leftHanded ? -v.x : v.x // +1 = 時計回り
+  const vert = v.y // -1 上回転, +1 下回転
+  const sw = Math.max(1.5, size / 12)
+
+  let arc: ReactNode = null
+  if (side !== 0) {
+    const ar = r * 0.68
+    // 画面座標では角度が増える向きが時計回り
+    const startDeg = side > 0 ? -160 : -20
+    const endDeg = side > 0 ? 110 : -290
+    const s = polar(ar, startDeg)
+    const e = polar(ar, endDeg)
+    const sweep = side > 0 ? 1 : 0
+    const tRad = (endDeg * Math.PI) / 180
+    const tx = side > 0 ? -Math.sin(tRad) : Math.sin(tRad)
+    const ty = side > 0 ? Math.cos(tRad) : -Math.cos(tRad)
+    const hl = r * 0.34
+    const tip = { x: e.x + tx * hl * 0.6, y: e.y + ty * hl * 0.6 }
+    const base = { x: e.x - tx * hl * 0.4, y: e.y - ty * hl * 0.4 }
+    const nx = -ty
+    const ny = tx
+    arc = (
+      <>
+        <path d={`M${s.x},${s.y} A${ar},${ar} 0 1 ${sweep} ${e.x},${e.y}`} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" />
+        <path
+          d={`M${tip.x},${tip.y} L${base.x + nx * hl * 0.55},${base.y + ny * hl * 0.55} L${base.x - nx * hl * 0.55},${base.y - ny * hl * 0.55} Z`}
+          fill={color}
+        />
+      </>
+    )
+  }
+
+  let vertical: ReactNode = null
+  if (vert !== 0) {
+    const len = side !== 0 ? r * 0.55 : r * 0.9
+    const y1 = -vert * len * 0.5
+    const y2 = vert * len * 0.5
+    const h = Math.max(2.5, len * 0.35)
+    vertical = (
+      <>
+        <line x1={0} y1={y1} x2={0} y2={y2 - vert * h * 0.5} stroke={color} strokeWidth={sw} strokeLinecap="round" />
+        <path d={`M0,${y2} L${-h * 0.6},${y2 - vert * h} L${h * 0.6},${y2 - vert * h} Z`} fill={color} />
+      </>
+    )
+  }
 
   const body = (
     <g transform={`translate(${cx},${cy})`}>
-      <circle r={r} fill="#fff" stroke={color} strokeWidth={1.5} />
-      {len === 0 ? (
-        <circle r={r * 0.22} fill={color} />
-      ) : (
-        <>
-          <line x1={x1} y1={y1} x2={x2 + hx * 0.6} y2={y2 + hy * 0.6} stroke={color} strokeWidth={2} strokeLinecap="round" />
-          <path d={head!} fill={color} />
-        </>
-      )}
+      <circle r={r} fill="#fff" stroke={color} strokeWidth={sw * 0.8} />
+      {arc}
+      {vertical}
+      {side === 0 && vert === 0 && <circle r={r * 0.2} fill={color} />}
     </g>
   )
   if (asGroup) return body
@@ -63,9 +92,10 @@ export function SpinGlyph({ spin, size = 22, color = '#1a202c', cx = 0, cy = 0, 
 interface PickerProps {
   value?: Spin
   onChange: (s: Spin | undefined) => void
+  leftHanded?: boolean
 }
 
-export function SpinPicker({ value, onChange }: PickerProps) {
+export function SpinPicker({ value, onChange, leftHanded }: PickerProps) {
   return (
     <div className="spin-picker" role="group" aria-label="回転">
       <span className="spin-axis top">上回転</span>
@@ -81,7 +111,7 @@ export function SpinPicker({ value, onChange }: PickerProps) {
             onClick={() => onChange(value === s ? undefined : s)}
             aria-pressed={value === s}
           >
-            <SpinGlyph spin={s} size={26} color={value === s ? '#1d5fa8' : '#4a5568'} />
+            <SpinGlyph spin={s} size={28} color={value === s ? '#1d5fa8' : '#4a5568'} leftHanded={leftHanded} />
             <span>{SPIN_LABEL[s]}</span>
           </button>
         ))}

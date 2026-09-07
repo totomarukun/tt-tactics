@@ -64,7 +64,7 @@ function unit(a: Pt, b: Pt): Pt {
  * ハーフ: エンドラインぎりぎりまでの点線
  * 奥: エンドラインを越えて出ていく点線
  */
-function BounceTail({ node, p, from, color }: { node: ShotNode; p: Pt; from: Pt; color: string }) {
+function BounceTail({ node, p, from, color, uid }: { node: ShotNode; p: Pt; from: Pt; color: string; uid: string }) {
   const side = node.zone.side
   const away = side === 'opp' ? -1 : 1 // ネットから離れる向き
   let u = unit(from, p)
@@ -72,45 +72,61 @@ function BounceTail({ node, p, from, color }: { node: ShotNode; p: Pt; from: Pt;
   const baselineY = side === 'opp' ? 0 : TABLE_H
   const dist = Math.abs(baselineY - p.y)
   const toBaseline = dist / Math.abs(u.y)
-  const dash = { stroke: color, strokeWidth: 2, strokeDasharray: '3 4', fill: 'none', opacity: 0.85 }
+  const marker = `url(#tail-${node.player}-${uid})`
+  const start = { x: p.x + u.x * (R + 2), y: p.y + u.y * (R + 2) }
+  // バウンド後の矢印は本線より細く、少し弧を描く（跳ねる感じ）
+  const bounceArrow = (to: Pt, dashed: boolean) => {
+    const mx = (start.x + to.x) / 2 - u.y * 6
+    const my = (start.y + to.y) / 2 + u.x * 6
+    return (
+      <path
+        d={`M${start.x},${start.y} Q${mx},${my} ${to.x},${to.y}`}
+        fill="none"
+        stroke={color}
+        strokeWidth={2}
+        strokeDasharray={dashed ? '4 3' : undefined}
+        opacity={0.9}
+        markerEnd={marker}
+        strokeLinecap="round"
+      />
+    )
+  }
 
   if (node.zone.depth === 'S') {
-    const d = Math.min(38, toBaseline - 10)
+    // 2バウンド: 同じコート内でもう一度跳ねる
+    const d = Math.max(22, Math.min(40, toBaseline - 12))
     const q = { x: p.x + u.x * d, y: p.y + u.y * d }
+    const q2 = { x: q.x + u.x * 14, y: q.y + u.y * 14 }
     return (
       <g>
-        <line x1={p.x + u.x * (R + 2)} y1={p.y + u.y * (R + 2)} x2={q.x} y2={q.y} {...dash} />
+        {bounceArrow({ x: q.x - u.x * 7, y: q.y - u.y * 7 }, false)}
         <circle cx={q.x} cy={q.y} r={6} fill="none" stroke={color} strokeWidth={2} />
+        <line x1={q.x + u.x * 7} y1={q.y + u.y * 7} x2={q2.x} y2={q2.y} stroke={color} strokeWidth={1.5} opacity={0.6} strokeLinecap="round" />
       </g>
     )
   }
   if (node.zone.depth === 'H') {
-    const q = { x: p.x + u.x * toBaseline, y: baselineY }
+    // ハーフロング: エンドライン上で止まる
+    const q = { x: p.x + u.x * (toBaseline - 4), y: p.y + u.y * (toBaseline - 4) }
     return (
       <g>
-        <line x1={p.x + u.x * (R + 2)} y1={p.y + u.y * (R + 2)} x2={q.x} y2={q.y} {...dash} />
-        <path d={`M${q.x - 7},${q.y} L${q.x + 7},${q.y}`} stroke={color} strokeWidth={3} strokeLinecap="round" />
-        <path d={`M${q.x - 5},${q.y - away * 6} L${q.x + 5},${q.y - away * 6}`} stroke={color} strokeWidth={1.5} strokeLinecap="round" opacity={0.6} />
+        {bounceArrow(q, false)}
+        <path d={`M${p.x + u.x * toBaseline - 8},${baselineY} L${p.x + u.x * toBaseline + 8},${baselineY}`} stroke={color} strokeWidth={3.5} strokeLinecap="round" />
       </g>
     )
   }
-  const over = toBaseline + 20
+  // ロング: エンドラインを越えて出ていく
+  const over = toBaseline + 24
   const q = { x: p.x + u.x * over, y: p.y + u.y * over }
-  const tip = { x: q.x + u.x * 6, y: q.y + u.y * 6 }
-  const px = -u.y
-  const py = u.x
-  return (
-    <g>
-      <line x1={p.x + u.x * (R + 2)} y1={p.y + u.y * (R + 2)} x2={q.x} y2={q.y} {...dash} />
-      <path
-        d={`M${q.x + px * 5},${q.y + py * 5} L${tip.x},${tip.y} L${q.x - px * 5},${q.y - py * 5}`}
-        stroke={color}
-        strokeWidth={2}
-        fill="none"
-        strokeLinecap="round"
-      />
-    </g>
-  )
+  return <g>{bounceArrow(q, true)}</g>
+}
+
+/** サーブの自コート側バウンド（出発点と相手コート着点の間） */
+function ServeOwnBounce({ from, to, color }: { from: Pt; to: Pt; color: string }) {
+  const t = 0.3
+  const x = from.x + (to.x - from.x) * t
+  const y = from.y + (to.y - from.y) * t
+  return <circle cx={x} cy={y} r={5} fill="none" stroke={color} strokeWidth={2} opacity={0.9} />
 }
 
 export function TableDiagram({
@@ -143,6 +159,12 @@ export function TableDiagram({
       <defs>
         <marker id={`arrow-me-${uid}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M0,0 L10,5 L0,10 z" fill={ME_COLOR} />
+        </marker>
+        <marker id={`tail-me-${uid}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill={ME_COLOR} />
+        </marker>
+        <marker id={`tail-opp-${uid}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill={OPP_COLOR} />
         </marker>
         <marker id={`arrow-opp-${uid}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M0,0 L10,5 L0,10 z" fill={OPP_COLOR} />
@@ -257,12 +279,13 @@ export function TableDiagram({
             />
           )
         })}
+        {!compact && serveStart && points[0] && <ServeOwnBounce from={serveStart} to={points[0]} color={ME_COLOR} />}
         {!compact &&
           points.map((p, i) => {
             const from = i === 0 ? serveStart : points[i - 1]
             if (!from) return null
             const color = path[i].player === 'me' ? ME_COLOR : OPP_COLOR
-            return <BounceTail key={`b${path[i].id}`} node={path[i]} p={p} from={from} color={color} />
+            return <BounceTail key={`b${path[i].id}`} node={path[i]} p={p} from={from} color={color} uid={uid} />
           })}
         {points.map((p, i) => {
           const n = path[i]
@@ -287,11 +310,11 @@ export function TableDiagram({
               {!compact && n.spin && (
                 <SpinGlyph
                   spin={n.spin}
-                  size={18}
+                  size={24}
                   color="#1a202c"
-                  cx={p.x + R + 6}
-                  cy={p.y - R - 2}
-                  flipX={(n.player === 'opp') !== ((me ? hands.me : hands.opp) === 'left')}
+                  cx={p.x + R + 9}
+                  cy={p.y - R - 4}
+                  leftHanded={(me ? hands.me : hands.opp) === 'left'}
                   asGroup
                 />
               )}

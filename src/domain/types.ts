@@ -78,6 +78,39 @@ export interface Settings {
   myHand: Handedness
   defaultOppHand: Handedness
   strokeOrder: StrokeType[]
+  /** AI コーチ用。端末内にのみ保存される */
+  anthropicApiKey?: string
+  /** 自分のプレースタイルの説明（AI コーチに渡す） */
+  playerProfile?: string
+}
+
+// ---- Phase 2: 練習課題と練習ログ ----
+export type TaskStatus = 'open' | 'done'
+export interface Task {
+  id: string
+  title: string
+  detail?: string        // やり方（球出し、回数など）
+  purpose?: string       // 狙い
+  tacticIds: string[]
+  status: TaskStatus
+  source: 'manual' | 'ai'
+  createdAt: string
+  doneAt?: string
+}
+
+export type PracticeResult = 'good' | 'ok' | 'bad'
+export interface PracticeItem {
+  taskId: string
+  result?: PracticeResult
+  note?: string
+}
+export interface PracticeLog {
+  id: string
+  date: string           // YYYY-MM-DD
+  items: PracticeItem[]
+  note?: string          // その日の振り返り
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Hands {

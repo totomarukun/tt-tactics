@@ -158,7 +158,7 @@ export function ShotSheet({
 
         <div className="chip-group spin-row">
           <span className="chip-label">回転{isServe ? '' : '（任意）'}</span>
-          <SpinPicker value={spin} onChange={setSpin} />
+          <SpinPicker value={spin} onChange={setSpin} leftHanded={(player === 'me' ? hands.me : hands.opp) === 'left'} />
         </div>
 
         <div className="chip-group">

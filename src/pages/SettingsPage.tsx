@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { BottomNav } from '../components/BottomNav'
 import type { Handedness } from '../domain/types'
 import { useStore, type ExportFile } from '../store/useStore'
 
@@ -6,6 +7,9 @@ export function SettingsPage() {
   const { settings, tactics, navigate, updateSettings, exportData, importData } = useStore()
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [keyDraft, setKeyDraft] = useState(settings.anthropicApiKey ?? '')
+  const [profileDraft, setProfileDraft] = useState(settings.playerProfile ?? '')
+  void navigate
 
   const doExport = async () => {
     const data = exportData()
@@ -43,9 +47,6 @@ export function SettingsPage() {
   return (
     <div className="page">
       <header className="app-bar">
-        <button className="icon" onClick={() => navigate({ name: 'list' })} aria-label="戻る">
-          ‹
-        </button>
         <h1>設定</h1>
       </header>
 
@@ -72,6 +73,34 @@ export function SettingsPage() {
           ))}
         </div>
         <p className="hint small">相手の利き手は戦術ごとに変更できます。ここは新規作成時の初期値です。</p>
+      </section>
+
+      <section className="settings-section">
+        <h2>AI コーチ</h2>
+        <p className="hint small">
+          Anthropic の API キーを登録すると、戦術の詳細画面から練習メニューを提案してもらえます。キーはこの端末にだけ保存され、エクスポートには含まれません。
+        </p>
+        <label className="field">
+          <span>API キー</span>
+          <input
+            type="password"
+            value={keyDraft}
+            placeholder="sk-ant-..."
+            autoComplete="off"
+            onChange={(e) => setKeyDraft(e.target.value)}
+            onBlur={() => updateSettings({ anthropicApiKey: keyDraft.trim() || undefined })}
+          />
+        </label>
+        <label className="field">
+          <span>自分のプレースタイル（AI に渡す情報）</span>
+          <textarea
+            rows={3}
+            value={profileDraft}
+            placeholder="例: シェークハンド両ハンドドライブ型。両面裏ソフト。バックのチキータが得意、フォアの決定力が課題"
+            onChange={(e) => setProfileDraft(e.target.value)}
+            onBlur={() => updateSettings({ playerProfile: profileDraft.trim() || undefined })}
+          />
+        </label>
       </section>
 
       <section className="settings-section">
@@ -106,8 +135,9 @@ export function SettingsPage() {
 
       <section className="settings-section">
         <h2>このアプリについて</h2>
-        <p className="hint small">tt-tactics v0.1 — 卓球の戦術を台の図と分岐図で整理する個人用ノート。</p>
+        <p className="hint small">tt-tactics v0.4 — 卓球の戦術を台の図と分岐図で整理し、練習課題につなげる個人用ノート。</p>
       </section>
+      <BottomNav />
     </div>
   )
 }
