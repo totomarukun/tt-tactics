@@ -1,5 +1,5 @@
 import type { Hand, ServeMotion, Settings, ShotNode, StrokeType } from './types'
-import { HEIGHT_LABEL, SPIN_LABEL } from './spin'
+import { HEIGHT_LABEL, SPIN_AMOUNT_LABEL, SPIN_LABEL } from './spin'
 import { COL_LABEL, zoneShortLabel } from './zone'
 
 export const STROKE_LABEL: Record<StrokeType, string> = {
@@ -54,7 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export const TAG_SUGGESTIONS = ['前陣速攻', '中陣ドライブ', 'カットマン', '異質', 'ペン', '左利き']
 
 export function strokeText(n: ShotNode): string {
-  const spin = n.spin ? SPIN_LABEL[n.spin] : ''
+  const spin = n.spin ? `${SPIN_LABEL[n.spin]}${n.spinAmount ? SPIN_AMOUNT_LABEL[n.spinAmount] : ''}` : ''
   if (n.stroke === 'serve') {
     const motion = n.serveMotion ? SERVE_MOTION_LABEL[n.serveMotion] : ''
     const from = n.serveFrom ? `${COL_LABEL[n.serveFrom]}から` : ''

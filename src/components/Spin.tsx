@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { SPIN_GRID, SPIN_LABEL, SPIN_VECTOR } from '../domain/spin'
-import type { Spin } from '../domain/types'
+import { SPIN_GRID, SPIN_LABEL, SPIN_VECTOR, spinAmountScale } from '../domain/spin'
+import type { Spin, SpinAmount } from '../domain/types'
 
 interface GlyphProps {
   spin: Spin
@@ -12,6 +12,7 @@ interface GlyphProps {
   asGroup?: boolean
   /** 打者が左利きなら横回転の向きを反転 */
   leftHanded?: boolean
+  amount?: SpinAmount
 }
 
 function polar(r: number, deg: number) {
@@ -24,12 +25,13 @@ function polar(r: number, deg: number) {
  * 横回転: 順横＝時計回り、逆横＝反時計回りの円弧矢印（左利きは反転）。
  * 上下回転: 中央に上向き／下向きの矢印。ナックルは点。
  */
-export function SpinGlyph({ spin, size = 22, color = '#1a202c', cx = 0, cy = 0, asGroup, leftHanded }: GlyphProps) {
+export function SpinGlyph({ spin, size = 22, color = '#1a202c', cx = 0, cy = 0, asGroup, leftHanded, amount }: GlyphProps) {
   const r = size / 2
+  const amp = spinAmountScale(amount)
   const v = SPIN_VECTOR[spin]
   const side = leftHanded ? -v.x : v.x // +1 = 時計回り
   const vert = v.y // -1 上回転, +1 下回転
-  const sw = Math.max(1.5, size / 12)
+  const sw = Math.max(1.5, size / 12) * (amount ? amp : 1)
 
   let arc: ReactNode = null
   if (side !== 0) {
@@ -75,7 +77,7 @@ export function SpinGlyph({ spin, size = 22, color = '#1a202c', cx = 0, cy = 0, 
 
   const body = (
     <g transform={`translate(${cx},${cy})`}>
-      <circle r={r} fill="#fff" stroke={color} strokeWidth={sw * 0.8} />
+      <circle r={r} fill="#fff" stroke={color} strokeWidth={Math.max(1.5, size / 12) * 0.8} />
       {arc}
       {vertical}
       {side === 0 && vert === 0 && <circle r={r * 0.2} fill={color} />}

@@ -31,6 +31,7 @@ export type StrokeType =
 
 // 回転。fwd = 順横（フォア面の横回転）、rev = 逆横（YG・バック・巻き込み系）
 export type BallHeight = 'low' | 'high'
+export type SpinAmount = 'weak' | 'strong'
 
 export type Spin =
   | 'top_fwd'
@@ -53,6 +54,7 @@ export interface ShotNode {
   serveFrom?: Col
   spin?: Spin
   height?: BallHeight               // 未指定＝普通の高さ
+  spinAmount?: SpinAmount           // 未指定＝普通の回転量
   isFinisher?: boolean
   note?: string
   children: ShotNode[]

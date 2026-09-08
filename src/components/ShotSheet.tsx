@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { HAND_LABEL, SERVE_MOTIONS, SERVE_MOTION_LABEL, STROKE_LABEL } from '../domain/presets'
-import type { BallHeight, Col, Hand, Hands, Player, ServeMotion, ShotNode, Spin, StrokeType, Zone } from '../domain/types'
-import { HEIGHT_LABEL } from '../domain/spin'
+import type { BallHeight, Col, Hand, Hands, Player, ServeMotion, ShotNode, Spin, SpinAmount, StrokeType, Zone } from '../domain/types'
+import { HEIGHT_LABEL, SPIN_AMOUNT_LABEL } from '../domain/spin'
 import { COL_LABEL, DEPTH_LONG_LABEL, zoneLabel } from '../domain/zone'
 import { SpinPicker } from './Spin'
 import { TableDiagram } from './TableDiagram'
@@ -38,6 +38,7 @@ export function ShotSheet({
   const [serveFrom, setServeFrom] = useState<Col | undefined>(initial?.serveFrom)
   const [spin, setSpin] = useState<Spin | undefined>(initial?.spin)
   const [height, setHeight] = useState<BallHeight | undefined>(initial?.height)
+  const [spinAmount, setSpinAmount] = useState<SpinAmount | undefined>(initial?.spinAmount)
   const [isFinisher, setFinisher] = useState(!!initial?.isFinisher)
   const [note, setNote] = useState(initial?.note ?? '')
 
@@ -53,6 +54,7 @@ export function ShotSheet({
     serveFrom: isServe && player === 'me' ? serveFrom : undefined,
     spin,
     height,
+    spinAmount: spin ? spinAmount : undefined,
     isFinisher,
     note: note.trim() || undefined,
   })
@@ -160,6 +162,17 @@ export function ShotSheet({
           <span className="chip-label">回転{isServe ? '' : '（任意）'}</span>
           <SpinPicker value={spin} onChange={setSpin} leftHanded={(player === 'me' ? hands.me : hands.opp) === 'left'} />
         </div>
+        {spin && spin !== 'none' && (
+          <div className="chip-group">
+            <span className="chip-label">回転量</span>
+            {(Object.keys(SPIN_AMOUNT_LABEL) as SpinAmount[]).map((a) => (
+              <button key={a} className={`chip ${spinAmount === a ? 'on' : ''}`} onClick={() => setSpinAmount(spinAmount === a ? undefined : a)}>
+                {SPIN_AMOUNT_LABEL[a]}
+              </button>
+            ))}
+            <span className="hint small">未選択＝普通</span>
+          </div>
+        )}
 
         <div className="chip-group">
           <button className={`chip star-chip ${isFinisher ? 'on' : ''}`} onClick={() => setFinisher(!isFinisher)}>

@@ -1,4 +1,4 @@
-import type { Spin } from './types'
+import type { Spin, SpinAmount } from './types'
 
 export const SPIN_LABEL: Record<Spin, string> = {
   top_fwd: '順横上',
@@ -60,8 +60,15 @@ export const HEIGHT_LABEL = { low: '低い', high: '高い' } as const
 /** 打者から見た曲がる方向を画面上の x 方向（+1=右）に変換する */
 export function curveDirOnScreen(spin: Spin | undefined, player: 'me' | 'opp', hand: 'right' | 'left'): number {
   if (!spin) return 0
-  let x = SPIN_VECTOR[spin].x
+  // 順横（時計回り）は打者から見て左へ、逆横（反時計回り）は右へ膨らむ（ユーザー指定の約束事）
+  let x = -SPIN_VECTOR[spin].x
   if (hand === 'left') x = -x
   if (player === 'opp') x = -x // 向かい合っているので左右が逆
   return x
+}
+
+export const SPIN_AMOUNT_LABEL = { weak: '弱', strong: '強' } as const
+/** 回転量に応じた描画の倍率（矢印の太さ・膨らみ） */
+export function spinAmountScale(a: SpinAmount | undefined): number {
+  return a === 'strong' ? 1.5 : a === 'weak' ? 0.6 : 1
 }

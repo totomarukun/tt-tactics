@@ -15,7 +15,7 @@ import {
   zoneKey,
   zoneRect,
 } from '../domain/zone'
-import { curveDirOnScreen } from '../domain/spin'
+import { curveDirOnScreen, spinAmountScale } from '../domain/spin'
 import { SpinGlyph } from './Spin'
 
 // 台の上での色。自分＝白、相手＝赤（青い台の上で見分けやすい組み合わせ）
@@ -264,7 +264,7 @@ export function TableDiagram({
           const hitterHand = path[i].player === 'me' ? hands.me : hands.opp
           const dir = curveDirOnScreen(path[i].spin, path[i].player, hitterHand)
           const len = Math.hypot(end.x - start.x, end.y - start.y) || 1
-          const bend = dir * Math.min(60, len * 0.28)
+          const bend = dir * Math.min(60, len * 0.28) * spinAmountScale(path[i].spinAmount)
           const cx = (start.x + end.x) / 2 + bend
           const cy = (start.y + end.y) / 2
           return (
@@ -315,6 +315,7 @@ export function TableDiagram({
                   cx={p.x + R + 9}
                   cy={p.y - R - 4}
                   leftHanded={(me ? hands.me : hands.opp) === 'left'}
+                  amount={n.spinAmount}
                   asGroup
                 />
               )}

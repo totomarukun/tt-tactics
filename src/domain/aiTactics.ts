@@ -4,7 +4,7 @@ import { SERVE_MOTION_LABEL, STROKE_LABEL } from './presets'
 import { profileToText } from './profile'
 import { SPIN_LABEL } from './spin'
 import { newId } from './tree'
-import type { BallHeight, Col, Depth, Hand, ServeMotion, Settings, ShotNode, Spin, StrokeType, Tactic } from './types'
+import type { BallHeight, Col, Depth, Hand, ServeMotion, Settings, ShotNode, Spin, SpinAmount, StrokeType, Tactic } from './types'
 import { tacticToText } from './ai'
 
 // ---------- AI から受け取る形（フラットなショット一覧） ----------
@@ -21,6 +21,7 @@ interface FlatShot {
   serveFrom?: Col | ''
   spin?: Spin | ''
   height?: BallHeight | ''
+  spinAmount?: SpinAmount | ''
   isFinisher?: boolean
   note?: string
 }
@@ -67,6 +68,7 @@ const VOCAB = `【このアプリのデータ形式】
   .map(([k, v]) => `"${k}"=${v}`)
   .join(', ')}。fwd＝順横（フォア面の横回転）、rev＝逆横（YG・バック・巻き込み系）。サーブとレシーブには必ず入れる。
 - height: "low"（低い）/"high"（浮いた）。不要なら空。
+- spinAmount: "weak"（回転が弱い）/"strong"（回転が強い、切れている）。普通なら空。
 - isFinisher: その球が決め球なら true。各戦術に1つ以上。
 - note: 短いコツ（例: 「肘を前に出して面を作る」）。任意。
 
@@ -103,6 +105,7 @@ const SHOT_SCHEMA = {
     serveFrom: ENUM(['F', 'M', 'B'], true),
     spin: ENUM(Object.keys(SPIN_LABEL), true),
     height: ENUM(['low', 'high'], true),
+    spinAmount: ENUM(['weak', 'strong'], true),
     isFinisher: { type: 'boolean' },
     note: { type: 'string' },
   },
@@ -230,6 +233,7 @@ export function buildTree(situation: 'my_serve' | 'opp_serve', shots: FlatShot[]
       serveFrom: isRoot && player === 'me' ? (f.serveFrom && COLS.has(f.serveFrom) ? (f.serveFrom as Col) : 'B') : undefined,
       spin,
       height: f.height === 'low' || f.height === 'high' ? f.height : undefined,
+      spinAmount: spin && (f.spinAmount === 'weak' || f.spinAmount === 'strong') ? (f.spinAmount as SpinAmount) : undefined,
       isFinisher: !!f.isFinisher,
       note: typeof f.note === 'string' && f.note.trim() ? f.note.trim().slice(0, 80) : undefined,
       children: [],
