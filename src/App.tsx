@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { HomePage } from './pages/HomePage'
 import { PracticePage } from './pages/PracticePage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TacticDetailPage } from './pages/TacticDetailPage'
@@ -16,6 +17,8 @@ export default function App() {
   if (!loaded) return <div className="page loading">読み込み中…</div>
 
   switch (view.name) {
+    case 'list':
+      return <TacticListPage />
     case 'detail':
       return <TacticDetailPage id={view.id} />
     case 'tasks':
@@ -25,6 +28,6 @@ export default function App() {
     case 'settings':
       return <SettingsPage />
     default:
-      return <TacticListPage />
+      return <HomePage />
   }
 }

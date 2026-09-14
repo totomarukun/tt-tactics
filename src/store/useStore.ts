@@ -9,6 +9,7 @@ import { newReport, sanitizeLog, sanitizeOutcome, sanitizeSettings, sanitizeTact
 import type { PracticeItem, PracticeLog, Settings, ShotNode, Tactic, TacticOutcome, Task } from '../domain/types'
 
 export type View =
+  | { name: 'home' }
   | { name: 'list' }
   | { name: 'detail'; id: string }
   | { name: 'tasks' }
@@ -85,7 +86,7 @@ export const useStore = create<State>((set, get) => ({
   logs: [],
   outcomes: [],
   settings: DEFAULT_SETTINGS,
-  view: { name: 'list' },
+  view: { name: 'home' },
 
   navigate: (view) => set({ view }),
 
