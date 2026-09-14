@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { FAILURE_TAGS, RESULT_LABEL, RESULT_MARK, evidenceLabel, statsFor } from '../domain/outcome'
-import type { OutcomeResult, Tactic } from '../domain/types'
+import { useMemo, useState } from 'react'
+import { FAILURE_TAGS, RESULT_LABEL, RESULT_MARK, evidenceLabel, statsFor, statsForLeaf } from '../domain/outcome'
+import { STROKE_LABEL } from '../domain/presets'
+import { leafPaths } from '../domain/tree'
+import type { OutcomeResult, ShotNode, Tactic } from '../domain/types'
 import { useStore } from '../store/useStore'
 
 const RESULTS: OutcomeResult[] = ['won', 'even', 'lost']
@@ -10,6 +12,13 @@ function fmtDate(d: string): string {
   return `${Number(m)}/${Number(day)}`
 }
 
+/** パターンの短いラベル（根の次から葉まで、技術名を→でつなぐ） */
+function patternLabel(nodes: ShotNode[]): string {
+  const parts = nodes.slice(1).map((n) => `${STROKE_LABEL[n.stroke]}${n.isFinisher ? '★' : ''}`)
+  const s = parts.join('→')
+  return s.length > 0 ? s : '単発'
+}
+
 export function OutcomeSection({ tactic }: { tactic: Tactic }) {
   const { outcomes, addOutcome, deleteOutcome } = useStore()
   const [opponent, setOpponent] = useState('')
@@ -17,15 +26,22 @@ export function OutcomeSection({ tactic }: { tactic: Tactic }) {
   const [tags, setTags] = useState<string[]>([])
   const [expand, setExpand] = useState(false)
   const [flash, setFlash] = useState<OutcomeResult | null>(null)
+  const [pattern, setPattern] = useState<string>('all') // 'all' | leafId
 
-  const mine = outcomes.filter((o) => o.tacticId === tactic.id).slice(0, 8)
-  const stats = statsFor(tactic.id, outcomes)
+  const paths = useMemo(() => leafPaths(tactic.root), [tactic.root])
+  const multiPattern = paths.length > 1
+
+  const mine = outcomes
+    .filter((o) => o.tacticId === tactic.id && (pattern === 'all' || o.leafId === pattern))
+    .slice(0, 8)
+  const stats = pattern === 'all' ? statsFor(tactic.id, outcomes) : statsForLeaf(pattern, outcomes)
 
   const toggleTag = (t: string) => setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
 
   const record = async (result: OutcomeResult) => {
     await addOutcome({
       tacticId: tactic.id,
+      leafId: pattern === 'all' ? undefined : pattern,
       result,
       opponent: opponent.trim() || undefined,
       note: note.trim() || undefined,
@@ -46,6 +62,25 @@ export function OutcomeSection({ tactic }: { tactic: Tactic }) {
         <span className="hint small">{evidenceLabel(stats)}</span>
       </div>
       <div className="outcome-box">
+        {multiPattern && (
+          <div className="pattern-picker">
+            <div className="hint small">どの展開？</div>
+            <div className="chip-group">
+              <button className={`chip small ${pattern === 'all' ? 'on' : ''}`} onClick={() => setPattern('all')}>
+                全体
+              </button>
+              {paths.map((p) => {
+                const s = statsForLeaf(p.leaf.id, outcomes)
+                return (
+                  <button key={p.leaf.id} className={`chip small ${pattern === p.leaf.id ? 'on' : ''}`} onClick={() => setPattern(p.leaf.id)}>
+                    {patternLabel(p.nodes)}
+                    {s.tried > 0 && <span className="pat-rate"> {s.winRate !== null ? `${Math.round(s.winRate * 100)}%` : `${s.tried}`}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
         {stats.tried > 0 && (
           <div className="outcome-tally">
             <span className="won">◎ {stats.won}</span>

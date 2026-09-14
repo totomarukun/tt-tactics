@@ -2077,3 +2077,17 @@ textarea.full {
   gap: 6px;
   margin-top: 2px;
 }
+
+/* ---- pattern picker ---- */
+.pattern-picker {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--line);
+}
+.pat-rate {
+  font-weight: 700;
+  color: var(--accent);
+}
+.chip.on .pat-rate {
+  color: #fff;
+}

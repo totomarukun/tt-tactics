@@ -12,6 +12,20 @@ export interface OutcomeStats {
   lastDate: string | null
 }
 
+/** 特定の展開（leafId）の成績 */
+export function statsForLeaf(leafId: string, outcomes: TacticOutcome[]): OutcomeStats {
+  return statsFromList(outcomes.filter((o) => o.leafId === leafId))
+}
+
+function statsFromList(mine: TacticOutcome[]): OutcomeStats {
+  const won = mine.filter((o) => o.result === 'won').length
+  const even = mine.filter((o) => o.result === 'even').length
+  const lost = mine.filter((o) => o.result === 'lost').length
+  const decisive = won + lost
+  const lastDate = mine.reduce<string | null>((m, o) => (m && m > o.date ? m : o.date), null)
+  return { tried: mine.length, won, even, lost, winRate: decisive > 0 ? won / decisive : null, lastDate }
+}
+
 export function statsFor(tacticId: string, outcomes: TacticOutcome[]): OutcomeStats {
   const mine = outcomes.filter((o) => o.tacticId === tacticId)
   const won = mine.filter((o) => o.result === 'won').length

@@ -87,6 +87,23 @@ export function countNodes(root: ShotNode | null): number {
   return 1 + root.children.reduce((s, c) => s + countNodes(c), 0)
 }
 
+export interface LeafPath {
+  leaf: ShotNode
+  nodes: ShotNode[] // 根から葉まで
+}
+
+/** 根から各葉までの経路（＝到達パターン）を列挙する */
+export function leafPaths(root: ShotNode | null): LeafPath[] {
+  const out: LeafPath[] = []
+  const walk = (n: ShotNode, trail: ShotNode[]) => {
+    const path = [...trail, n]
+    if (n.children.length === 0) out.push({ leaf: n, nodes: path })
+    else n.children.forEach((c) => walk(c, path))
+  }
+  if (root) walk(root, [])
+  return out
+}
+
 export interface FlatNode {
   node: ShotNode
   depth: number

@@ -139,6 +139,7 @@ export function sanitizeOutcome(raw: unknown, report: SanitizeReport): TacticOut
     ...(r as object),
     id: r.id,
     tacticId: r.tacticId,
+    leafId: typeof r.leafId === 'string' ? r.leafId : undefined,
     result: r.result as OutcomeResult,
     date: str(r.date, new Date().toISOString().slice(0, 10)),
     opponent: typeof r.opponent === 'string' ? r.opponent : undefined,

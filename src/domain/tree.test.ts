@@ -80,3 +80,18 @@ describe('tree', () => {
     expect(f[1].parentId).toBe(root.id)
   })
 })
+
+import { leafPaths } from './tree'
+describe('leafPaths', () => {
+  it('各葉までの経路を列挙する', () => {
+    let root = createShot({ player: 'me', zone: { side: 'opp', col: 'B', depth: 'S' }, stroke: 'serve' })
+    const a = createShot({ player: 'opp', zone: { side: 'me', col: 'B', depth: 'L' }, stroke: 'push' })
+    const b = createShot({ player: 'opp', zone: { side: 'me', col: 'F', depth: 'S' }, stroke: 'stop' })
+    root = addChild(root, root.id, a)
+    root = addChild(root, root.id, b)
+    root = addChild(root, a.id, createShot({ player: 'me', zone: { side: 'opp', col: 'M', depth: 'L' }, stroke: 'drive', isFinisher: true }))
+    const paths = leafPaths(root)
+    expect(paths.length).toBe(2) // a→drive(葉), b(葉)
+    expect(paths.every((p) => p.nodes[0].id === root.id)).toBe(true)
+  })
+})

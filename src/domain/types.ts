@@ -165,6 +165,7 @@ export type OutcomeResult = 'won' | 'even' | 'lost' // 決まった / 五分 / �
 export interface TacticOutcome {
   id: string
   tacticId: string
+  leafId?: string        // どの展開（分岐パターンの終端）で試したか（任意）
   date: string           // YYYY-MM-DD
   result: OutcomeResult
   opponent?: string      // 相手（任意）
