@@ -3,10 +3,11 @@ import { db } from './db'
 import { DEFAULT_SETTINGS } from '../domain/presets'
 import { logEvent } from '../domain/harness/events'
 import { evidenceConfidence, statsFor } from '../domain/outcome'
+import { weekStart } from '../domain/week'
 import { SPIN_LABEL, migrateLegacySpin } from '../domain/spin'
 import { newId } from '../domain/tree'
-import { newReport, sanitizeLog, sanitizeOutcome, sanitizeSettings, sanitizeTactic, sanitizeTask } from '../domain/validate'
-import type { PracticeItem, PracticeLog, Settings, ShotNode, Tactic, TacticOutcome, Task } from '../domain/types'
+import { newReport, sanitizeFocus, sanitizeLog, sanitizeOutcome, sanitizeSettings, sanitizeTactic, sanitizeTask } from '../domain/validate'
+import type { Focus, PracticeItem, PracticeLog, Settings, ShotNode, Tactic, TacticOutcome, Task } from '../domain/types'
 
 export type View =
   | { name: 'home' }
@@ -25,6 +26,7 @@ export interface ExportFile {
   tasks?: Task[]
   logs?: PracticeLog[]
   outcomes?: TacticOutcome[]
+  focuses?: Focus[]
 }
 
 interface State {
@@ -33,10 +35,14 @@ interface State {
   tasks: Task[]
   logs: PracticeLog[]
   outcomes: TacticOutcome[]
+  focuses: Focus[]
   settings: Settings
   view: View
   navigate: (v: View) => void
   load: () => Promise<void>
+  addFocus: (data: Pick<Focus, 'title'> & Partial<Focus>) => Promise<void>
+  toggleFocus: (id: string) => Promise<void>
+  deleteFocus: (id: string) => Promise<void>
   addTactic: (data: Pick<Tactic, 'title' | 'situation' | 'oppHand'> & Partial<Tactic>) => Promise<Tactic>
   updateTactic: (id: string, patch: Partial<Tactic>) => Promise<void>
   deleteTactic: (id: string) => Promise<void>
@@ -85,6 +91,7 @@ export const useStore = create<State>((set, get) => ({
   tasks: [],
   logs: [],
   outcomes: [],
+  focuses: [],
   settings: DEFAULT_SETTINGS,
   view: { name: 'home' },
 
@@ -92,12 +99,13 @@ export const useStore = create<State>((set, get) => ({
 
   load: async () => {
     // インデックス欠落のレコードを取りこぼさないよう、順序付けせず全件取得してから JS で並べる
-    const [rawTactics, row, rawTasks, rawLogs, rawOutcomes] = await Promise.all([
+    const [rawTactics, row, rawTasks, rawLogs, rawOutcomes, rawFocuses] = await Promise.all([
       db.tactics.toArray(),
       db.settings.get('main'),
       db.tasks.toArray(),
       db.logs.toArray(),
       db.outcomes.toArray(),
+      db.focuses.toArray(),
     ])
     // 境界検証: 壊れた/古い形のレコードを描画で落ちない形に整える
     const rep = newReport()
@@ -118,6 +126,7 @@ export const useStore = create<State>((set, get) => ({
       .map((o) => sanitizeOutcome(o, rep))
       .filter((o): o is TacticOutcome => o !== null)
       .sort((a, b) => (a.date < b.date ? 1 : -1))
+    const focuses = rawFocuses.map((f) => sanitizeFocus(f, rep)).filter((f): f is Focus => f !== null)
     if (rep.dropped > 0 || rep.repaired > 0) {
       logEvent('warn', 'data', `読み込み時にデータを整えました（修復 ${rep.repaired} 件 / 破棄 ${rep.dropped} 件）`)
     }
@@ -129,9 +138,27 @@ export const useStore = create<State>((set, get) => ({
       tasks,
       logs,
       outcomes,
+      focuses,
       settings: sanitizeSettings(row?.value),
       loaded: true,
     })
+  },
+
+  addFocus: async (data) => {
+    const f: Focus = { id: newId(), week: weekStart(), done: false, createdAt: now(), ...data }
+    await db.focuses.put(f)
+    set({ focuses: [...get().focuses, f] })
+  },
+  toggleFocus: async (id) => {
+    const cur = get().focuses.find((f) => f.id === id)
+    if (!cur) return
+    const next = { ...cur, done: !cur.done }
+    set({ focuses: get().focuses.map((f) => (f.id === id ? next : f)) })
+    await db.focuses.put(next)
+  },
+  deleteFocus: async (id) => {
+    await db.focuses.delete(id)
+    set({ focuses: get().focuses.filter((f) => f.id !== id) })
   },
 
   // ---- 戦術 ----
@@ -295,6 +322,7 @@ export const useStore = create<State>((set, get) => ({
       tasks: get().tasks,
       logs: get().logs,
       outcomes: get().outcomes,
+      focuses: get().focuses,
     }
   },
 
@@ -308,13 +336,15 @@ export const useStore = create<State>((set, get) => ({
     const tasks = (file.tasks ?? []).map((t) => sanitizeTask(t, rep)).filter((t): t is Task => t !== null)
     const logs = (file.logs ?? []).map((l) => sanitizeLog(l, rep)).filter((l): l is PracticeLog => l !== null)
     const outcomes = (file.outcomes ?? []).map((o) => sanitizeOutcome(o, rep)).filter((o): o is TacticOutcome => o !== null)
+    const focuses = (file.focuses ?? []).map((f) => sanitizeFocus(f, rep)).filter((f): f is Focus => f !== null)
     if (mode === 'replace') {
-      await Promise.all([db.tactics.clear(), db.tasks.clear(), db.logs.clear(), db.outcomes.clear()])
+      await Promise.all([db.tactics.clear(), db.tasks.clear(), db.logs.clear(), db.outcomes.clear(), db.focuses.clear()])
     }
     await db.tactics.bulkPut(tactics)
     if (tasks.length) await db.tasks.bulkPut(tasks)
     if (logs.length) await db.logs.bulkPut(logs)
     if (outcomes.length) await db.outcomes.bulkPut(outcomes)
+    if (focuses.length) await db.focuses.bulkPut(focuses)
     if (file.settings) {
       const keep = get().settings.geminiApiKey
       await db.settings.put({ key: 'main', value: { ...sanitizeSettings(file.settings), geminiApiKey: keep } })

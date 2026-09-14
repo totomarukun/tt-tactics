@@ -1737,3 +1737,113 @@ textarea.full {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* ---- weekly focus (hero) ---- */
+.focus-box {
+  background: linear-gradient(180deg, #eef5ff, #ffffff 55%);
+  border: 1px solid #cfe0f7;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(29, 95, 168, 0.12);
+}
+.focus-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.focus-head > span:first-child {
+  font-weight: 800;
+  font-size: 16px;
+}
+.focus-empty .hint {
+  margin: 4px 0 8px;
+}
+.focus-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.focus-sg {
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.focus-sg b {
+  display: block;
+  font-size: 14px;
+}
+.focus-sg small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.focus-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 6px;
+  border: 1px solid #e2ecf8;
+}
+.focus-item.done .focus-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.focus-check {
+  flex: none;
+  font-size: 22px;
+  color: var(--accent);
+  line-height: 1;
+}
+.focus-main {
+  flex: 1;
+  min-width: 0;
+}
+.focus-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+.focus-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.focus-link {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.focus-del {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: var(--muted);
+  font-size: 16px;
+}
+.focus-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.focus-input {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.focus-input input {
+  flex: 1;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+}
+.focus-input .primary {
+  padding: 9px 14px;
+}

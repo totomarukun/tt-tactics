@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { BottomNav } from '../components/BottomNav'
 import { ConsultSheet } from '../components/ConsultSheet'
 import { TacticMetaForm } from '../components/TacticMetaForm'
+import { WeeklyFocus } from '../components/WeeklyFocus'
 import { diagnose, type AiInsight } from '../domain/harness/insightAi'
 import { computeInsights, type Insight, type InsightView } from '../domain/insights'
 import { weekProgress } from '../domain/week'
@@ -55,6 +56,9 @@ export function HomePage() {
           ⚙
         </button>
       </header>
+
+      {/* 今週の焦点（このアプリの背骨） */}
+      {withRoot.length > 0 && <WeeklyFocus />}
 
       {/* 今週の目標（やさしい継続） */}
       {(() => {

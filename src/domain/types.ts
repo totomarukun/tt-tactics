@@ -138,6 +138,17 @@ export interface PracticeLog {
   updatedAt: string
 }
 
+// 今週の焦点: 週1プレーヤーが、その1回の練習で何をやるかを1〜2個に絞る（最大2）
+export interface Focus {
+  id: string
+  week: string           // その週の開始日 YYYY-MM-DD（月曜）
+  title: string
+  note?: string
+  tacticId?: string      // 関連する戦術（任意）
+  done: boolean
+  createdAt: string
+}
+
 // 上達ループを閉じる: 戦術を試合で試した結果
 export type OutcomeResult = 'won' | 'even' | 'lost' // 決まった / 五分 / 効かなかった
 export interface TacticOutcome {

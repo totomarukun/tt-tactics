@@ -1,5 +1,5 @@
 import { DEFAULT_STROKE_ORDER } from './presets'
-import type { Col, Depth, Handedness, OutcomeResult, PracticeLog, Settings, ShotNode, Side, Situation, Tactic, TacticOutcome, Task } from './types'
+import type { Col, Depth, Focus, Handedness, OutcomeResult, PracticeLog, Settings, ShotNode, Side, Situation, Tactic, TacticOutcome, Task } from './types'
 
 // ハーネスの境界検証。IndexedDB からの読み込みや JSON インポートで入ってくるデータを、
 // 描画で落ちない形に整える。壊れて直せないレコードは捨てる（白画面を防ぐ）。
@@ -144,6 +144,29 @@ export function sanitizeOutcome(raw: unknown, report: SanitizeReport): TacticOut
     opponent: typeof r.opponent === 'string' ? r.opponent : undefined,
     failureTags: Array.isArray(r.failureTags) ? (r.failureTags.filter((x) => typeof x === 'string') as string[]) : undefined,
     note: typeof r.note === 'string' ? r.note : undefined,
+    createdAt: str(r.createdAt, new Date().toISOString()),
+  }
+}
+
+export function sanitizeFocus(raw: unknown, report: SanitizeReport): Focus | null {
+  if (!raw || typeof raw !== 'object') {
+    report.dropped++
+    return null
+  }
+  const r = raw as Record<string, unknown>
+  if (typeof r.id !== 'string' || typeof r.week !== 'string') {
+    report.dropped++
+    return null
+  }
+  report.kept++
+  return {
+    ...(r as object),
+    id: r.id,
+    week: r.week,
+    title: str(r.title, '（無題）'),
+    note: typeof r.note === 'string' ? r.note : undefined,
+    tacticId: typeof r.tacticId === 'string' ? r.tacticId : undefined,
+    done: r.done === true,
     createdAt: str(r.createdAt, new Date().toISOString()),
   }
 }
