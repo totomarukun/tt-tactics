@@ -1,5 +1,5 @@
-import { geminiJson, type GeminiTurn } from './gemini'
-import { knowledgeBlock } from './knowledge'
+import { type GeminiTurn } from './gemini'
+import { runAgent } from './harness/runner'
 import { SERVE_MOTION_LABEL, STROKE_LABEL } from './presets'
 import { profileToText } from './profile'
 import { SPIN_LABEL } from './spin'
@@ -157,7 +157,9 @@ function buildContext(settings: Settings, existing: Tactic[]): string {
 /** 戦術提案の前に、選手に聞いておきたい追加質問を 2〜4 個返す */
 export async function askFollowUp(settings: Settings, existing: Tactic[]): Promise<FollowUpResponse> {
   const user = `${buildContext(settings, existing)}\n\n戦術を提案する前に、この選手に確認しておくべきことを 2〜4 個、短い質問文で挙げてください。プロフィールから既に分かることは聞かないでください。答えやすいように具体的に（例: 「相手の横回転サーブはツッツキとフリックのどちらで返すことが多いですか？」）。`
-  const { data, model } = await geminiJson<{ questions?: string[] }>(settings, SYSTEM + knowledgeBlock(settings), [{ role: 'user', text: user }], FOLLOWUP_SCHEMA, {
+  const { data, model } = await runAgent<{ questions?: string[] }>(settings, SYSTEM, [{ role: 'user', text: user }], FOLLOWUP_SCHEMA, {
+    label: 'followup',
+    kind: 'followup',
     temperature: 0.8,
   })
   return { questions: (data.questions ?? []).filter((q) => typeof q === 'string' && q.trim()), model }
@@ -182,7 +184,11 @@ export async function proposeTactics(settings: Settings, existing: Tactic[], qa:
       text: `${buildContext(settings, existing)}${qaText}${req}\n\nこの選手のための戦術を 3〜5 個設計し、指定の JSON 形式で出力してください。`,
     },
   ]
-  const { data, model } = await geminiJson<{ summary?: string; tactics?: TacticProposal[] }>(settings, SYSTEM + knowledgeBlock(settings), turns, PROPOSAL_SCHEMA, {
+  const { data, model } = await runAgent<{ summary?: string; tactics?: TacticProposal[] }>(settings, SYSTEM, turns, PROPOSAL_SCHEMA, {
+    label: 'propose-tactics',
+    kind: 'propose-tactics',
+    tags: qa.flatMap((x) => x.answer.split(/[、,\s]+/)).filter(Boolean),
+    request: extraRequest,
     temperature: 0.8,
   })
   const tactics = (data.tactics ?? []).filter((t) => t && Array.isArray(t.shots) && t.shots.length > 0)

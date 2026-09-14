@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { askFollowUp, proposalToTactic, proposeTactics, type ProposalResponse, type QA } from '../domain/aiTactics'
+import { verifyTactics, type TacticVerdict, type Verdict } from '../domain/harness/verify'
 import { profileIsFilled, profileToText } from '../domain/profile'
 import { defaultPath } from '../domain/tree'
 import { useStore } from '../store/useStore'
@@ -7,6 +8,12 @@ import { ProfileSheet } from './ProfileSheet'
 import { TableDiagram } from './TableDiagram'
 import { nodeLabel } from '../domain/presets'
 import { flatten } from '../domain/tree'
+
+const VERDICT_META: Record<Verdict, { label: string; cls: string }> = {
+  good: { label: '◎ 妥当', cls: 'v-good' },
+  revise: { label: '⚠ 要確認', cls: 'v-revise' },
+  reject: { label: '✕ 非推奨', cls: 'v-reject' },
+}
 
 type Step =
   | { kind: 'intro' }
@@ -28,6 +35,8 @@ export function AiTacticSheet({ onClose }: Props) {
   const [picked, setPicked] = useState<Set<number>>(new Set())
   const [savedIds, setSavedIds] = useState<string[] | null>(null)
   const [qaState, setQaState] = useState<QA[]>([])
+  const [verdicts, setVerdicts] = useState<TacticVerdict[] | null>(null)
+  const [verifying, setVerifying] = useState(false)
 
   const hasKey = !!settings.geminiApiKey
   const filled = profileIsFilled(settings)
@@ -46,10 +55,23 @@ export function AiTacticSheet({ onClose }: Props) {
 
   const runPropose = async (qa: QA[]) => {
     setStep({ kind: 'proposing' })
+    setVerdicts(null)
     try {
       const res = await proposeTactics(settings, tactics, qa, request)
       setPicked(new Set(res.tactics.map((_, i) => i)))
       setStep({ kind: 'result', res })
+      // 生成と評価を分ける: 別の評価役で妥当性を審査（バックグラウンド）
+      setVerifying(true)
+      verifyTactics(settings, res.tactics)
+        .then((v) => {
+          setVerdicts(v.verdicts)
+          // 非推奨は既定でチェックを外す
+          setPicked(new Set(res.tactics.map((_, i) => i).filter((i) => v.verdicts[i]?.verdict !== 'reject')))
+        })
+        .catch(() => {
+          /* 審査失敗は無視。提案はそのまま使える */
+        })
+        .finally(() => setVerifying(false))
     } catch (e) {
       setStep({ kind: 'error', message: e instanceof Error ? e.message : String(e), back: { kind: 'intro' } })
     }
@@ -170,20 +192,39 @@ export function AiTacticSheet({ onClose }: Props) {
         {step.kind === 'result' && (
           <>
             <div className="coach-note">{step.res.summary}</div>
-            <p className="hint small">モデル: {step.res.model}。登録後は普通の戦術と同じように編集できます。</p>
+            <p className="hint small">
+              モデル: {step.res.model}。登録後は普通の戦術と同じように編集できます。
+              {verifying && <span className="verifying"> 別のコーチが妥当性を審査中…</span>}
+              {verdicts && <span> 審査済み（◎妥当 ⚠要確認 ✕非推奨）。</span>}
+            </p>
             <ul className="drill-list">
               {step.res.tactics.map((p, i) => {
                 const data = proposalToTactic(p, settings)
                 const root = data?.root ?? null
                 const path = defaultPath(root)
                 const rows = flatten(root)
+                const v = verdicts?.[i]
                 return (
-                  <li key={i} className={`drill proposal ${picked.has(i) ? 'on' : ''}`} onClick={() => !savedIds && toggle(i)}>
+                  <li key={i} className={`drill proposal ${picked.has(i) ? 'on' : ''} ${v ? VERDICT_META[v.verdict].cls : ''}`} onClick={() => !savedIds && toggle(i)}>
                     <div className="drill-head">
                       <span className="check">{picked.has(i) ? '☑' : '☐'}</span>
                       <span className={`badge ${p.situation}`}>{p.situation === 'my_serve' ? 'サーブ' : 'レシーブ'}</span>
                       <span className="drill-title">{p.title}</span>
+                      {v && <span className={`verdict ${VERDICT_META[v.verdict].cls}`}>{VERDICT_META[v.verdict].label}</span>}
                     </div>
+                    {v && (v.assessment || v.issues.length > 0) && (
+                      <div className="verdict-note">
+                        {v.assessment && <div className="assessment">{v.assessment}</div>}
+                        {v.issues.map((iss, k) => (
+                          <div key={k} className="issue">・{iss}</div>
+                        ))}
+                        {v.checks
+                          .filter((c) => c.severity === 'error')
+                          .map((c, k) => (
+                            <div key={`c${k}`} className="issue err">・{c.message}</div>
+                          ))}
+                      </div>
+                    )}
                     <div className="proposal-body">
                       <div className="proposal-mini">
                         <TableDiagram path={path} hands={{ me: settings.myHand, opp: settings.defaultOppHand }} compact />

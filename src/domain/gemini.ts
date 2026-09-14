@@ -1,5 +1,3 @@
-import type { Settings } from './types'
-
 const API = 'https://generativelanguage.googleapis.com/v1beta'
 
 interface ModelInfo {
@@ -28,7 +26,8 @@ export function pickModel(models: ModelInfo[]): string | null {
   return cands[0]?.id ?? null
 }
 
-const FALLBACK_MODEL = 'gemini-2.5-pro'
+export const FALLBACK_MODEL = 'gemini-2.5-flash'
+const DEFAULT_MODEL = 'gemini-2.5-pro'
 let cachedModel: { key: string; model: string } | null = null
 
 export async function resolveModel(apiKey: string, override?: string): Promise<string> {
@@ -47,17 +46,10 @@ export async function resolveModel(apiKey: string, override?: string): Promise<s
   } catch {
     /* 一覧が取れなければ既定へ */
   }
-  return FALLBACK_MODEL
+  return DEFAULT_MODEL
 }
 
-function extractError(status: number, body: string): string {
-  let msg = body.slice(0, 200)
-  try {
-    const j = JSON.parse(body) as { error?: { message?: string } }
-    if (j.error?.message) msg = j.error.message
-  } catch {
-    /* noop */
-  }
+export function friendlyError(status: number, msg: string): string {
   if (status === 429 && /spending cap/i.test(msg)) {
     return '429: Google 側の月間支出上限に達しています。https://ai.studio/spend で上限を上げるか、設定のモデル名に gemini-2.5-flash（無料枠あり）を指定してください。'
   }
@@ -73,49 +65,70 @@ function extractError(status: number, body: string): string {
   return `${status}: ${msg}`
 }
 
+export class GeminiError extends Error {
+  status: number
+  retriable: boolean
+  constructor(status: number, rawMsg: string) {
+    super(friendlyError(status, rawMsg))
+    this.name = 'GeminiError'
+    this.status = status
+    // 429（レート）と 5xx（一時障害）と 0（ネットワーク）はリトライ対象。支出上限は待っても復帰しないので除外
+    this.retriable = (status === 429 && !/spending cap/i.test(rawMsg)) || status >= 500 || status === 0
+  }
+}
+
+function parseErrMsg(body: string): string {
+  try {
+    const j = JSON.parse(body) as { error?: { message?: string } }
+    if (j.error?.message) return j.error.message
+  } catch {
+    /* noop */
+  }
+  return body.slice(0, 200)
+}
+
 export interface GeminiTurn {
   role: 'user' | 'model'
   text: string
 }
 
-/** JSON スキーマ付きで Gemini を呼び、パース済みの結果と使用モデルを返す */
-export async function geminiJson<T>(
-  settings: Settings,
+export interface RawResult {
+  text: string
+  model: string
+}
+
+/** 1回だけ Gemini を呼ぶ（リトライなし）。失敗時は GeminiError を投げる */
+export async function callGeminiOnce(
+  apiKey: string,
+  model: string,
   system: string,
   turns: GeminiTurn[],
   schema: unknown,
-  opts: { temperature?: number } = {},
-): Promise<{ data: T; model: string }> {
-  const apiKey = settings.geminiApiKey?.trim()
-  if (!apiKey) throw new Error('設定画面で Gemini の API キーを登録してください')
-  const model = await resolveModel(apiKey, settings.geminiModel)
-
-  const res = await fetch(`${API}/models/${model}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: turns.map((t) => ({ role: t.role, parts: [{ text: t.text }] })),
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseJsonSchema: schema,
-        temperature: opts.temperature ?? 0.7,
-      },
-    }),
-  })
-  if (!res.ok) throw new Error(`Gemini API エラー ${extractError(res.status, await res.text())}`)
+  temperature: number,
+): Promise<RawResult> {
+  let res: Response
+  try {
+    res = await fetch(`${API}/models/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: turns.map((t) => ({ role: t.role, parts: [{ text: t.text }] })),
+        generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema, temperature },
+      }),
+    })
+  } catch (e) {
+    throw new GeminiError(0, `ネットワークエラー: ${(e as Error).message}`)
+  }
+  if (!res.ok) throw new GeminiError(res.status, parseErrMsg(await res.text()))
 
   const data = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[]
     promptFeedback?: { blockReason?: string }
   }
-  if (data.promptFeedback?.blockReason) throw new Error(`Gemini がリクエストをブロックしました（${data.promptFeedback.blockReason}）`)
+  if (data.promptFeedback?.blockReason) throw new GeminiError(400, `ブロック（${data.promptFeedback.blockReason}）`)
   const cand = data.candidates?.[0]
   const text = (cand?.content?.parts ?? []).map((p) => p.text ?? '').join('')
-  if (!text) throw new Error(`Gemini から本文が返りませんでした（finishReason: ${cand?.finishReason ?? '不明'}）`)
-  try {
-    return { data: JSON.parse(text) as T, model }
-  } catch {
-    throw new Error('Gemini の応答を JSON として解釈できませんでした')
-  }
+  if (!text) throw new GeminiError(0, `本文が空（finishReason: ${cand?.finishReason ?? '不明'}）`)
+  return { text, model }
 }

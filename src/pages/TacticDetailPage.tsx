@@ -6,6 +6,7 @@ import { TaskSheet } from '../components/TaskSheet'
 import { ShotTree } from '../components/ShotTree'
 import { TableDiagram } from '../components/TableDiagram'
 import { TacticMetaForm, metaOf } from '../components/TacticMetaForm'
+import { checkTree, worstSeverity, type CheckIssue } from '../domain/harness/checks'
 import { nodeLabel } from '../domain/presets'
 import { addChild, createShot, defaultPath, findNode, findPath, otherPlayer, removeNode, updateNode } from '../domain/tree'
 import type { ShotNode } from '../domain/types'
@@ -47,6 +48,7 @@ export function TacticDetailPage({ id }: { id: string }) {
 
   const hands = { me: settings.myHand, opp: tactic.oppHand }
   const linkedTasks = tasks.filter((t) => t.tacticIds.includes(tactic.id))
+  const checkIssues = checkTree(root, tactic.situation)
   const effectiveSelected = selectedId && findNode(root, selectedId) ? selectedId : (path[path.length - 1]?.id ?? null)
 
   const saveRoot = (next: ShotNode | null) => updateTactic(tactic.id, { root: next })
@@ -118,6 +120,8 @@ export function TacticDetailPage({ id }: { id: string }) {
       <div className="diagram-wrap">
         <TableDiagram path={path} hands={hands} onShotTap={setSelectedId} selectedId={effectiveSelected} />
       </div>
+
+      {root && <SelfCheck issues={checkIssues} />}
 
       {root ? (
         <>
@@ -223,6 +227,34 @@ export function TacticDetailPage({ id }: { id: string }) {
         />
       )}
       <BottomNav />
+    </div>
+  )
+}
+
+function SelfCheck({ issues }: { issues: CheckIssue[] }) {
+  const [open, setOpen] = useState(false)
+  const worst = worstSeverity(issues)
+  const meta =
+    worst === 'ok'
+      ? { cls: 'ok', label: '◎ 卓球的な問題は見つかりません' }
+      : worst === 'error'
+        ? { cls: 'err', label: `✕ ${issues.filter((i) => i.severity === 'error').length} 件の要修正` }
+        : { cls: 'warn', label: `⚠ ${issues.length} 件の気づき` }
+  return (
+    <div className={`self-check ${meta.cls}`}>
+      <button className="self-check-head" onClick={() => setOpen(!open)}>
+        <span>セルフチェック: {meta.label}</span>
+        {issues.length > 0 && <span className="chev">{open ? '▲' : '▼'}</span>}
+      </button>
+      {open && issues.length > 0 && (
+        <ul className="self-check-list">
+          {issues.map((i, k) => (
+            <li key={k} className={i.severity}>
+              {i.severity === 'error' ? '✕' : '⚠'} {i.message}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

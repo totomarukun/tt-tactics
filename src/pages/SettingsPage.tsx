@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { AiLog } from '../components/AiLog'
 import { BottomNav } from '../components/BottomNav'
 import { ProfileSheet } from '../components/ProfileSheet'
 import { profileIsFilled } from '../domain/profile'
@@ -142,6 +143,7 @@ export function SettingsPage() {
           />
           <p className="hint small">ここに書いた内容は知識ベースより優先されます。</p>
         </label>
+        <AiLog />
       </section>
 
       <section className="settings-section">

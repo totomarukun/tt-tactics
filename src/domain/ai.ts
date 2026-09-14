@@ -1,5 +1,4 @@
-import { geminiJson } from './gemini'
-import { knowledgeBlock } from './knowledge'
+import { runAgent } from './harness/runner'
 import { nodeLabel } from './presets'
 import { profileToText } from './profile'
 import type { Settings, ShotNode, Tactic, Task } from './types'
@@ -90,11 +89,12 @@ export async function suggestDrills(tactic: Tactic, settings: Settings, existing
     ? `\n\nすでに登録済みの練習課題（重複しない提案にすること）:\n${existingTasks.map((t) => `- ${t.title}`).join('\n')}`
     : ''
   const user = `【選手のプロフィール】\n${profileToText(settings)}\n\n【戦術】\n${tacticToText(tactic)}${existing}\n\nこの戦術を実戦で決められるようにする練習メニューを提案してください。`
-  const { data, model } = await geminiJson<{ drills?: DrillProposal[]; coachNote?: string }>(
+  const { data, model } = await runAgent<{ drills?: DrillProposal[]; coachNote?: string }>(
     settings,
-    SYSTEM + knowledgeBlock(settings),
+    SYSTEM,
     [{ role: 'user', text: user }],
     DRILLS_SCHEMA,
+    { label: 'drills', kind: 'drills', situation: tactic.situation, tags: tactic.tags },
   )
   if (!Array.isArray(data.drills)) throw new Error('Gemini の応答に練習メニューが含まれていません')
   return { drills: data.drills, coachNote: data.coachNote ?? '', model }

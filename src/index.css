@@ -979,3 +979,170 @@ textarea.full {
 .chapter-list li {
   padding: 2px 0;
 }
+
+/* ---- verdict (harness verification) ---- */
+.verdict {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.verdict.v-good {
+  background: #d1fae5;
+  color: #065f46;
+}
+.verdict.v-revise {
+  background: #fef3c7;
+  color: #92400e;
+}
+.verdict.v-reject {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.drill.proposal.v-reject {
+  opacity: 0.72;
+}
+.drill.proposal.v-good {
+  border-color: #6ee7b7;
+}
+.verdict-note {
+  margin: 4px 0 2px 26px;
+  font-size: 12px;
+}
+.verdict-note .assessment {
+  color: #4a5568;
+  margin-bottom: 3px;
+}
+.verdict-note .issue {
+  color: #92400e;
+}
+.verdict-note .issue.err {
+  color: #991b1b;
+}
+.verifying {
+  color: var(--accent);
+}
+
+/* ---- AI log (traces) ---- */
+.trace-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.trace-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+.trace-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.trace-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.trace-dot.ok {
+  background: #10b981;
+}
+.trace-dot.error {
+  background: #ef4444;
+}
+.trace-label {
+  font-weight: 600;
+}
+.trace-meta {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.trace-detail {
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+.trace-detail h4 {
+  margin: 8px 0 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.trace-detail pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  margin: 0;
+  max-height: 200px;
+  overflow: auto;
+  background: var(--card);
+  border-radius: 6px;
+  padding: 6px;
+}
+.trace-err {
+  color: #991b1b;
+  font-size: 12px;
+}
+
+/* ---- self check ---- */
+.self-check {
+  border-radius: 10px;
+  margin: 10px 0;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.self-check.ok {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+.self-check.warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+.self-check.err {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.self-check-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.self-check.ok .self-check-head {
+  color: #065f46;
+}
+.self-check.warn .self-check-head {
+  color: #92400e;
+}
+.self-check.err .self-check-head {
+  color: #991b1b;
+}
+.self-check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px 8px;
+  font-size: 12px;
+}
+.self-check-list li {
+  padding: 2px 0;
+}
+.self-check-list li.error {
+  color: #991b1b;
+}
+.self-check-list li.warn {
+  color: #92400e;
+}
