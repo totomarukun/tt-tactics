@@ -38,6 +38,27 @@ export const RESULT_LABEL: Record<TacticOutcome['result'], string> = {
   even: '五分',
   lost: '効かなかった',
 }
+
+// 崩れ方・敗因タグ（リサーチ 04-postmatch-reflection の推奨: 局面×崩れ方の10個。動詞入りで練習/戦術へ橋渡し）
+export const FAILURE_TAGS = [
+  'サーブで先手を取れず',
+  'レシーブでミス・浮かせた',
+  '3球目を打ち急いだ',
+  'つなぎが甘くなった',
+  '決め球を焦った',
+  '戦術が単調・選択ミス',
+  'リードで守って逆転された',
+  '競り合いで崩れた',
+  '後半に切れた',
+  '相手の戦型・回転に対応できず',
+]
+
+/** 崩れ方タグの頻度を集計（多い順）。lost/even を主対象に全結果から集める */
+export function failureTagCounts(outcomes: TacticOutcome[]): { tag: string; count: number }[] {
+  const m = new Map<string, number>()
+  for (const o of outcomes) for (const t of o.failureTags ?? []) m.set(t, (m.get(t) ?? 0) + 1)
+  return [...m.entries()].map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count)
+}
 export const RESULT_MARK: Record<TacticOutcome['result'], string> = { won: '◎', even: '△', lost: '✕' }
 
 /** カード等に出す一言。試行なしは「未実戦」 */

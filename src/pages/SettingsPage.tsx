@@ -82,6 +82,15 @@ export function SettingsPage() {
           ))}
         </div>
         <p className="hint small">相手の利き手は戦術ごとに変更できます。ここは新規作成時の初期値です。</p>
+        <div className="chip-group">
+          <span className="chip-label">週の目標</span>
+          {[2, 3, 4].map((n) => (
+            <button key={n} className={`chip ${(settings.weeklyGoal ?? 2) === n ? 'on' : ''}`} onClick={() => updateSettings({ weeklyGoal: n })}>
+              週{n}回
+            </button>
+          ))}
+        </div>
+        <p className="hint small">練習または試合をした日を数えます。連続日数ではなく週の達成で見ます。休む週があってもかまいません。</p>
       </section>
 
       <section className="settings-section">

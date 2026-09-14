@@ -90,6 +90,8 @@ export interface Settings {
   profile?: PlayerProfile
   /** コーチへの追加知識・指導方針（知識ベースに追記される） */
   coachNotes?: string
+  /** 週の練習/試合の目標回数（既定2）。連続日数でなく週の達成を主指標にする */
+  weeklyGoal?: number
 }
 
 export type Grip = 'shake' | 'pen_jp' | 'pen_cn'
@@ -144,7 +146,8 @@ export interface TacticOutcome {
   date: string           // YYYY-MM-DD
   result: OutcomeResult
   opponent?: string      // 相手（任意）
-  note?: string
+  failureTags?: string[] // 崩れ方・敗因（任意）
+  note?: string          // 崩れ方の一言（任意）
   createdAt: string
 }
 

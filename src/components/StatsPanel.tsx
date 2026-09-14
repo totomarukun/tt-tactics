@@ -1,4 +1,4 @@
-import { RESULT_MARK, statsFor } from '../domain/outcome'
+import { RESULT_MARK, failureTagCounts, statsFor } from '../domain/outcome'
 import { useStore } from '../store/useStore'
 
 // 可視化は「だから次はこれ」まで翻訳する。練習ヒートマップと戦術別勝率。
@@ -42,6 +42,8 @@ export function StatsPanel() {
   const totalWon = outcomes.filter((o) => o.result === 'won').length
   const totalLost = outcomes.filter((o) => o.result === 'lost').length
   const overall = totalWon + totalLost > 0 ? Math.round((totalWon / (totalWon + totalLost)) * 100) : null
+  const failures = failureTagCounts(outcomes).slice(0, 6)
+  const maxFail = failures[0]?.count ?? 1
 
   const cw = 12
   const gap = 3
@@ -117,6 +119,28 @@ export function StatsPanel() {
           </ul>
         )}
       </div>
+
+      {failures.length > 0 && (
+        <>
+          <div className="section-head">
+            <span>崩れ方の傾向</span>
+            <span className="hint small">記録した敗因</span>
+          </div>
+          <div className="stats-box">
+            <ul className="fail-list">
+              {failures.map((f) => (
+                <li key={f.tag}>
+                  <span className="fail-tag">{f.tag}</span>
+                  <span className="fail-bar">
+                    <span style={{ width: `${(f.count / maxFail) * 100}%` }} />
+                  </span>
+                  <span className="fail-count">{f.count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
     </>
   )
 }

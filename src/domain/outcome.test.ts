@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { evidenceConfidence, evidenceLabel, statsFor } from './outcome'
+import { evidenceConfidence, evidenceLabel, failureTagCounts, statsFor } from './outcome'
 import type { TacticOutcome } from './types'
 
 const o = (tacticId: string, result: TacticOutcome['result'], date = '2026-09-01'): TacticOutcome => ({
@@ -48,5 +48,18 @@ describe('evidenceLabel', () => {
     expect(evidenceLabel(statsFor('t', []))).toBe('未実戦')
     expect(evidenceLabel(statsFor('t', [o('t', 'even'), o('t', 'even')]))).toContain('回試行')
     expect(evidenceLabel(statsFor('t', [o('t', 'won'), o('t', 'lost')]))).toContain('%')
+  })
+})
+
+describe('failureTagCounts', () => {
+  it('タグ頻度を多い順に集計', () => {
+    const os = [
+      o('a', 'lost'),
+      { ...o('a', 'lost'), failureTags: ['決め急ぎ', '3球目が入らない'] },
+      { ...o('a', 'lost'), failureTags: ['決め急ぎ'] },
+    ]
+    const c = failureTagCounts(os)
+    expect(c[0]).toEqual({ tag: '決め急ぎ', count: 2 })
+    expect(c.find((x) => x.tag === '3球目が入らない')?.count).toBe(1)
   })
 })

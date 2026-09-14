@@ -142,6 +142,7 @@ export function sanitizeOutcome(raw: unknown, report: SanitizeReport): TacticOut
     result: r.result as OutcomeResult,
     date: str(r.date, new Date().toISOString().slice(0, 10)),
     opponent: typeof r.opponent === 'string' ? r.opponent : undefined,
+    failureTags: Array.isArray(r.failureTags) ? (r.failureTags.filter((x) => typeof x === 'string') as string[]) : undefined,
     note: typeof r.note === 'string' ? r.note : undefined,
     createdAt: str(r.createdAt, new Date().toISOString()),
   }
@@ -158,6 +159,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     myHand: HANDS.has(r.myHand as Handedness) ? (r.myHand as Handedness) : 'right',
     defaultOppHand: HANDS.has(r.defaultOppHand as Handedness) ? (r.defaultOppHand as Handedness) : 'right',
     strokeOrder: arr<unknown>(r.strokeOrder).length ? (r.strokeOrder as Settings['strokeOrder']) : DEFAULT_STROKE_ORDER,
+    weeklyGoal: typeof r.weeklyGoal === 'number' && r.weeklyGoal >= 1 && r.weeklyGoal <= 7 ? r.weeklyGoal : 2,
   }
 }
 

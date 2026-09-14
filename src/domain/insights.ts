@@ -1,4 +1,4 @@
-import { statsFor } from './outcome'
+import { failureTagCounts, statsFor } from './outcome'
 import type { PracticeLog, Tactic, TacticOutcome, Task } from './types'
 
 // あなたのデータから気づきを見つける決定的エンジン（LLM なし）。
@@ -123,6 +123,19 @@ export function computeInsights(input: InsightInput): Insight[] {
         action: { label: 'コーチに相談', view: 'consult' },
       })
     }
+  }
+
+  // 頻出の崩れ方（敗因タグ）
+  const failures = failureTagCounts(outcomes)
+  if (failures.length > 0 && failures[0].count >= 2) {
+    out.push({
+      id: `failure-${failures[0].tag}`,
+      tone: 'warn',
+      priority: 82,
+      title: `崩れ方の傾向: 「${failures[0].tag}」が ${failures[0].count} 回`,
+      detail: '負けや五分の場面で繰り返している崩れ方です。ここを埋める練習や戦術をコーチに相談しましょう。',
+      action: { label: 'コーチに相談', view: 'consult' },
+    })
   }
 
   // 練習と試合のギャップ: 練習した戦術を試合で試していない

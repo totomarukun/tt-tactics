@@ -4,6 +4,7 @@ import { ConsultSheet } from '../components/ConsultSheet'
 import { TacticMetaForm } from '../components/TacticMetaForm'
 import { diagnose, type AiInsight } from '../domain/harness/insightAi'
 import { computeInsights, type Insight, type InsightView } from '../domain/insights'
+import { weekProgress } from '../domain/week'
 import { useStore } from '../store/useStore'
 
 const TONE_ICON: Record<Insight['tone'], string> = { good: '◎', warn: '⚠', info: '💡' }
@@ -54,6 +55,28 @@ export function HomePage() {
           ⚙
         </button>
       </header>
+
+      {/* 今週の目標（やさしい継続） */}
+      {(() => {
+        const goal = settings.weeklyGoal ?? 2
+        const wp = weekProgress(logs, outcomes, goal)
+        return (
+          <div className={`week-goal ${wp.done ? 'done' : ''}`}>
+            <div className="wg-top">
+              <span className="wg-label">今週の目標</span>
+              <span className="wg-count">
+                {wp.active} / {goal} 日{wp.done && ' ◎'}
+              </span>
+            </div>
+            <div className="wg-bar">
+              {Array.from({ length: goal }).map((_, i) => (
+                <span key={i} className={i < wp.active ? 'fill' : ''} />
+              ))}
+            </div>
+            <div className="wg-msg">{wp.done ? '今週の目標を達成。お疲れさま。' : wp.active === 0 ? '練習や試合を記録すると進みます。休む週があってもOK。' : 'いいペース。焦らず続けましょう。'}</div>
+          </div>
+        )
+      })()}
 
       {/* 今週の数字 */}
       <div className="week-stats">
