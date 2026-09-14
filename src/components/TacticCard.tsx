@@ -1,15 +1,18 @@
+import { statsFor } from '../domain/outcome'
 import { defaultPath } from '../domain/tree'
-import type { Handedness, Tactic } from '../domain/types'
+import type { Handedness, Tactic, TacticOutcome } from '../domain/types'
 import { TableDiagram } from './TableDiagram'
 
 interface Props {
   tactic: Tactic
   myHand: Handedness
+  outcomes: TacticOutcome[]
   onOpen: (id: string) => void
 }
 
-export function TacticCard({ tactic, myHand, onOpen }: Props) {
+export function TacticCard({ tactic, myHand, outcomes, onOpen }: Props) {
   const path = defaultPath(tactic.root)
+  const stats = statsFor(tactic.id, outcomes)
   return (
     <button className="tactic-card" onClick={() => onOpen(tactic.id)}>
       <div className="card-mini">
@@ -35,6 +38,12 @@ export function TacticCard({ tactic, myHand, onOpen }: Props) {
             </span>
           ))}
           {path.length === 0 && <span className="tag muted">未入力</span>}
+          {path.length > 0 && stats.tried === 0 && <span className="tag untried">未実戦</span>}
+          {stats.winRate !== null && (
+            <span className={`tag rate ${stats.winRate >= 0.6 ? 'good' : stats.winRate < 0.4 ? 'bad' : ''}`}>
+              {Math.round(stats.winRate * 100)}% 決まる
+            </span>
+          )}
         </div>
       </div>
     </button>

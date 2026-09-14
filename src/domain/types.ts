@@ -136,6 +136,18 @@ export interface PracticeLog {
   updatedAt: string
 }
 
+// 上達ループを閉じる: 戦術を試合で試した結果
+export type OutcomeResult = 'won' | 'even' | 'lost' // 決まった / 五分 / 効かなかった
+export interface TacticOutcome {
+  id: string
+  tacticId: string
+  date: string           // YYYY-MM-DD
+  result: OutcomeResult
+  opponent?: string      // 相手（任意）
+  note?: string
+  createdAt: string
+}
+
 export interface Hands {
   me: Handedness
   opp: Handedness

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AiCoachSheet } from '../components/AiCoachSheet'
 import { BottomNav } from '../components/BottomNav'
+import { OutcomeSection } from '../components/OutcomeSection'
 import { ShotSheet, type ShotData } from '../components/ShotSheet'
 import { TaskSheet } from '../components/TaskSheet'
 import { ShotTree } from '../components/ShotTree'
@@ -180,6 +181,8 @@ export function TacticDetailPage({ id }: { id: string }) {
         </div>
         {!root && <p className="hint small">球を入力してから AI コーチを呼んでください。</p>}
       </div>
+
+      <OutcomeSection tactic={tactic} />
 
       {aiOpen && <AiCoachSheet tactic={tactic} onClose={() => setAiOpen(false)} />}
       {newTask && (

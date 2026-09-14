@@ -2,10 +2,11 @@ import { create } from 'zustand'
 import { db } from './db'
 import { DEFAULT_SETTINGS } from '../domain/presets'
 import { logEvent } from '../domain/harness/events'
+import { evidenceConfidence, statsFor } from '../domain/outcome'
 import { SPIN_LABEL, migrateLegacySpin } from '../domain/spin'
 import { newId } from '../domain/tree'
-import { newReport, sanitizeLog, sanitizeSettings, sanitizeTactic, sanitizeTask } from '../domain/validate'
-import type { PracticeItem, PracticeLog, Settings, ShotNode, Tactic, Task } from '../domain/types'
+import { newReport, sanitizeLog, sanitizeOutcome, sanitizeSettings, sanitizeTactic, sanitizeTask } from '../domain/validate'
+import type { PracticeItem, PracticeLog, Settings, ShotNode, Tactic, TacticOutcome, Task } from '../domain/types'
 
 export type View =
   | { name: 'list' }
@@ -16,12 +17,13 @@ export type View =
 
 export interface ExportFile {
   app: 'tt-tactics'
-  version: 1 | 2
+  version: 1 | 2 | 3
   exportedAt: string
   settings: Settings
   tactics: Tactic[]
   tasks?: Task[]
   logs?: PracticeLog[]
+  outcomes?: TacticOutcome[]
 }
 
 interface State {
@@ -29,6 +31,7 @@ interface State {
   tactics: Tactic[]
   tasks: Task[]
   logs: PracticeLog[]
+  outcomes: TacticOutcome[]
   settings: Settings
   view: View
   navigate: (v: View) => void
@@ -36,6 +39,8 @@ interface State {
   addTactic: (data: Pick<Tactic, 'title' | 'situation' | 'oppHand'> & Partial<Tactic>) => Promise<Tactic>
   updateTactic: (id: string, patch: Partial<Tactic>) => Promise<void>
   deleteTactic: (id: string) => Promise<void>
+  addOutcome: (data: Pick<TacticOutcome, 'tacticId' | 'result'> & Partial<TacticOutcome>) => Promise<void>
+  deleteOutcome: (id: string) => Promise<void>
   addTask: (data: Pick<Task, 'title'> & Partial<Task>) => Promise<Task>
   updateTask: (id: string, patch: Partial<Task>) => Promise<void>
   deleteTask: (id: string) => Promise<void>
@@ -78,6 +83,7 @@ export const useStore = create<State>((set, get) => ({
   tactics: [],
   tasks: [],
   logs: [],
+  outcomes: [],
   settings: DEFAULT_SETTINGS,
   view: { name: 'list' },
 
@@ -85,11 +91,12 @@ export const useStore = create<State>((set, get) => ({
 
   load: async () => {
     // インデックス欠落のレコードを取りこぼさないよう、順序付けせず全件取得してから JS で並べる
-    const [rawTactics, row, rawTasks, rawLogs] = await Promise.all([
+    const [rawTactics, row, rawTasks, rawLogs, rawOutcomes] = await Promise.all([
       db.tactics.toArray(),
       db.settings.get('main'),
       db.tasks.toArray(),
       db.logs.toArray(),
+      db.outcomes.toArray(),
     ])
     // 境界検証: 壊れた/古い形のレコードを描画で落ちない形に整える
     const rep = newReport()
@@ -106,6 +113,10 @@ export const useStore = create<State>((set, get) => ({
       .map((l) => sanitizeLog(l, rep))
       .filter((l): l is PracticeLog => l !== null)
       .sort((a, b) => (a.date < b.date ? 1 : -1))
+    const outcomes = rawOutcomes
+      .map((o) => sanitizeOutcome(o, rep))
+      .filter((o): o is TacticOutcome => o !== null)
+      .sort((a, b) => (a.date < b.date ? 1 : -1))
     if (rep.dropped > 0 || rep.repaired > 0) {
       logEvent('warn', 'data', `読み込み時にデータを整えました（修復 ${rep.repaired} 件 / 破棄 ${rep.dropped} 件）`)
     }
@@ -116,6 +127,7 @@ export const useStore = create<State>((set, get) => ({
       tactics,
       tasks,
       logs,
+      outcomes,
       settings: sanitizeSettings(row?.value),
       loaded: true,
     })
@@ -154,10 +166,44 @@ export const useStore = create<State>((set, get) => ({
     const affected = get().tasks.filter((t) => t.tacticIds.includes(id))
     const updated = affected.map((t) => ({ ...t, tacticIds: t.tacticIds.filter((x) => x !== id) }))
     await db.tasks.bulkPut(updated)
+    await db.outcomes.where('tacticId').equals(id).delete()
     set({
       tactics: get().tactics.filter((t) => t.id !== id),
       tasks: get().tasks.map((t) => updated.find((u) => u.id === t.id) ?? t),
+      outcomes: get().outcomes.filter((o) => o.tacticId !== id),
     })
+  },
+
+  // ---- 試合結果（上達ループを閉じる） ----
+  addOutcome: async (data) => {
+    const o: TacticOutcome = {
+      id: newId(),
+      date: today(),
+      createdAt: now(),
+      ...data,
+    }
+    await db.outcomes.put(o)
+    const outcomes = [o, ...get().outcomes]
+    set({ outcomes })
+    // 実績が十分たまったら自信度を証拠ベースで自動更新
+    const ev = evidenceConfidence(statsFor(o.tacticId, outcomes))
+    const t = get().tactics.find((x) => x.id === o.tacticId)
+    if (t && ev !== null && ev !== t.confidence) {
+      await get().updateTactic(o.tacticId, { confidence: ev })
+      logEvent('info', 'app', `実績から自信度を更新: 「${t.title}」→ ${['練習中', '実戦で使える', '得意'][ev - 1]}`)
+    }
+  },
+
+  deleteOutcome: async (id) => {
+    const o = get().outcomes.find((x) => x.id === id)
+    await db.outcomes.delete(id)
+    const outcomes = get().outcomes.filter((x) => x.id !== id)
+    set({ outcomes })
+    if (o) {
+      const ev = evidenceConfidence(statsFor(o.tacticId, outcomes))
+      const t = get().tactics.find((x) => x.id === o.tacticId)
+      if (t && ev !== null && ev !== t.confidence) await get().updateTactic(o.tacticId, { confidence: ev })
+    }
   },
 
   // ---- 課題 ----
@@ -241,12 +287,13 @@ export const useStore = create<State>((set, get) => ({
     void _omit
     return {
       app: 'tt-tactics',
-      version: 2,
+      version: 3,
       exportedAt: now(),
       settings,
       tactics: get().tactics,
       tasks: get().tasks,
       logs: get().logs,
+      outcomes: get().outcomes,
     }
   },
 
@@ -259,17 +306,19 @@ export const useStore = create<State>((set, get) => ({
     const tactics = file.tactics.map((t) => sanitizeTactic(t, rep)).filter((t): t is Tactic => t !== null)
     const tasks = (file.tasks ?? []).map((t) => sanitizeTask(t, rep)).filter((t): t is Task => t !== null)
     const logs = (file.logs ?? []).map((l) => sanitizeLog(l, rep)).filter((l): l is PracticeLog => l !== null)
+    const outcomes = (file.outcomes ?? []).map((o) => sanitizeOutcome(o, rep)).filter((o): o is TacticOutcome => o !== null)
     if (mode === 'replace') {
-      await Promise.all([db.tactics.clear(), db.tasks.clear(), db.logs.clear()])
+      await Promise.all([db.tactics.clear(), db.tasks.clear(), db.logs.clear(), db.outcomes.clear()])
     }
     await db.tactics.bulkPut(tactics)
     if (tasks.length) await db.tasks.bulkPut(tasks)
     if (logs.length) await db.logs.bulkPut(logs)
+    if (outcomes.length) await db.outcomes.bulkPut(outcomes)
     if (file.settings) {
       const keep = get().settings.geminiApiKey
       await db.settings.put({ key: 'main', value: { ...sanitizeSettings(file.settings), geminiApiKey: keep } })
     }
-    logEvent('info', 'io', `インポート: 戦術 ${tactics.length} / 課題 ${tasks.length} / ログ ${logs.length}（${mode === 'replace' ? '置換' : '追加'}）${rep.dropped ? ` / 不正 ${rep.dropped} 件を除外` : ''}`)
+    logEvent('info', 'io', `インポート: 戦術 ${tactics.length} / 課題 ${tasks.length} / ログ ${logs.length} / 試合結果 ${outcomes.length}（${mode === 'replace' ? '置換' : '追加'}）${rep.dropped ? ` / 不正 ${rep.dropped} 件を除外` : ''}`)
     await get().load()
     return tactics.length
   },

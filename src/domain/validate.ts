@@ -1,5 +1,5 @@
 import { DEFAULT_STROKE_ORDER } from './presets'
-import type { Col, Depth, Handedness, PracticeLog, Settings, ShotNode, Side, Situation, Tactic, Task } from './types'
+import type { Col, Depth, Handedness, OutcomeResult, PracticeLog, Settings, ShotNode, Side, Situation, Tactic, TacticOutcome, Task } from './types'
 
 // ハーネスの境界検証。IndexedDB からの読み込みや JSON インポートで入ってくるデータを、
 // 描画で落ちない形に整える。壊れて直せないレコードは捨てる（白画面を防ぐ）。
@@ -120,6 +120,31 @@ export function sanitizeLog(raw: unknown, report: SanitizeReport): PracticeLog |
   }
   report.kept++
   return l
+}
+
+const RESULTS = new Set<OutcomeResult>(['won', 'even', 'lost'])
+
+export function sanitizeOutcome(raw: unknown, report: SanitizeReport): TacticOutcome | null {
+  if (!raw || typeof raw !== 'object') {
+    report.dropped++
+    return null
+  }
+  const r = raw as Record<string, unknown>
+  if (typeof r.id !== 'string' || typeof r.tacticId !== 'string' || !RESULTS.has(r.result as OutcomeResult)) {
+    report.dropped++
+    return null
+  }
+  report.kept++
+  return {
+    ...(r as object),
+    id: r.id,
+    tacticId: r.tacticId,
+    result: r.result as OutcomeResult,
+    date: str(r.date, new Date().toISOString().slice(0, 10)),
+    opponent: typeof r.opponent === 'string' ? r.opponent : undefined,
+    note: typeof r.note === 'string' ? r.note : undefined,
+    createdAt: str(r.createdAt, new Date().toISOString()),
+  }
 }
 
 const DEFAULTS: Settings = { myHand: 'right', defaultOppHand: 'right', strokeOrder: DEFAULT_STROKE_ORDER }

@@ -1220,3 +1220,151 @@ textarea.full {
   color: var(--muted);
   font-size: 11px;
 }
+
+/* ---- outcome (試合結果) ---- */
+.outcome-box {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.outcome-tally {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.outcome-tally .won {
+  color: #059669;
+}
+.outcome-tally .even {
+  color: #d97706;
+}
+.outcome-tally .lost {
+  color: #dc2626;
+}
+.outcome-tally .evidence-note {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.outcome-buttons {
+  display: flex;
+  gap: 8px;
+}
+.outcome-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  transition: transform 0.1s;
+}
+.outcome-btn .mark {
+  font-size: 20px;
+}
+.outcome-btn.won {
+  color: #059669;
+}
+.outcome-btn.even {
+  color: #d97706;
+}
+.outcome-btn.lost {
+  color: #dc2626;
+}
+.outcome-btn:active {
+  transform: scale(0.96);
+}
+.outcome-btn.flash {
+  background: var(--accent);
+  color: #fff;
+}
+.outcome-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0;
+}
+.outcome-fields input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.outcome-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.outcome-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.outcome-list .o-mark {
+  flex: none;
+  width: 16px;
+  text-align: center;
+}
+.outcome-list li.won .o-mark {
+  color: #059669;
+}
+.outcome-list li.even .o-mark {
+  color: #d97706;
+}
+.outcome-list li.lost .o-mark {
+  color: #dc2626;
+}
+.outcome-list .o-date {
+  flex: none;
+  color: var(--muted);
+  font-size: 12px;
+  width: 34px;
+}
+.outcome-list .o-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.outcome-list .o-note {
+  color: var(--muted);
+}
+.o-del {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: var(--muted);
+  font-size: 16px;
+}
+.tag.rate {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+.tag.rate.good {
+  background: #d1fae5;
+  color: #065f46;
+}
+.tag.rate.bad {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.tag.untried {
+  background: #fef3c7;
+  color: #92400e;
+}

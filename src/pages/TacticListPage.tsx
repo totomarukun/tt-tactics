@@ -9,7 +9,7 @@ import { useStore } from '../store/useStore'
 type Filter = 'all' | Situation
 
 export function TacticListPage() {
-  const { tactics, settings, navigate, addTactic } = useStore()
+  const { tactics, outcomes, settings, navigate, addTactic } = useStore()
   const [filter, setFilter] = useState<Filter>('all')
   const [tag, setTag] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -65,7 +65,7 @@ export function TacticListPage() {
       ) : (
         <div className="card-list">
           {shown.map((t) => (
-            <TacticCard key={t.id} tactic={t} myHand={settings.myHand} onOpen={(id) => navigate({ name: 'detail', id })} />
+            <TacticCard key={t.id} tactic={t} myHand={settings.myHand} outcomes={outcomes} onOpen={(id) => navigate({ name: 'detail', id })} />
           ))}
         </div>
       )}
