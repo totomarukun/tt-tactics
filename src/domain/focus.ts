@@ -1,14 +1,18 @@
 import { failureTagCounts, statsFor } from './outcome'
 import type { Focus, Tactic, TacticOutcome } from './types'
-import { weekStart } from './week'
 
-// 今週の焦点。研究06: 失点から逆算して1〜2個に絞る。3個目は止める。手を広げない。
+// 今の焦点。週区切りでなく「今意識してやること」として持続。研究06: 失点から逆算して1〜2個に絞る。3個目は止める。
 
 export const MAX_FOCUS = 2
 
-export function currentFocuses(focuses: Focus[], now = new Date()): Focus[] {
-  const wk = weekStart(now)
-  return focuses.filter((f) => f.week === wk).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
+/** いま取り組み中（未達成）の焦点。最大2個まで持つ */
+export function activeFocuses(focuses: Focus[]): Focus[] {
+  return focuses.filter((f) => !f.done).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
+}
+
+/** 達成した焦点（成長の記録）。新しい順 */
+export function achievedFocuses(focuses: Focus[]): Focus[] {
+  return focuses.filter((f) => f.done).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
 }
 
 export interface FocusSuggestion {

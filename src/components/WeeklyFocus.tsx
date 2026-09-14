@@ -1,17 +1,19 @@
 import { useState } from 'react'
-import { MAX_FOCUS, currentFocuses, suggestFocuses } from '../domain/focus'
+import { MAX_FOCUS, achievedFocuses, activeFocuses, suggestFocuses } from '../domain/focus'
 import { useStore } from '../store/useStore'
 
-// ホームの主役。週1プレーヤーが「今週の1回でやること」を1〜2個に絞る。手を広げない。
+// ホームの主役。「今意識してやること」を1〜2個に絞る。手を広げない。達成した焦点は成長の記録として残す。
 
 export function WeeklyFocus() {
   const { focuses, tactics, outcomes, addFocus, toggleFocus, deleteFocus, navigate } = useStore()
   const [adding, setAdding] = useState(false)
   const [text, setText] = useState('')
+  const [showDone, setShowDone] = useState(false)
 
-  const week = currentFocuses(focuses)
-  const full = week.length >= MAX_FOCUS
-  const suggestions = suggestFocuses(tactics, outcomes).filter((s) => !week.some((f) => f.title === s.title))
+  const active = activeFocuses(focuses)
+  const done = achievedFocuses(focuses)
+  const full = active.length >= MAX_FOCUS
+  const suggestions = suggestFocuses(tactics, outcomes).filter((s) => !active.some((f) => f.title === s.title))
 
   const add = async (title: string, note?: string, tacticId?: string) => {
     if (!title.trim() || full) return
@@ -24,13 +26,13 @@ export function WeeklyFocus() {
   return (
     <div className="focus-box">
       <div className="focus-head">
-        <span>今週の焦点</span>
-        <span className="hint small">次の1回でやることを1〜2個だけ</span>
+        <span>今の焦点</span>
+        <span className="hint small">今いちばん意識してやること（1〜2個）</span>
       </div>
 
-      {week.length === 0 && !adding && (
+      {active.length === 0 && !adding && (
         <div className="focus-empty">
-          <p className="hint">試合の悔しさが濃いうちに、今週やることを1つ決めましょう。手を広げず、1〜2個に絞るのがコツです。</p>
+          <p className="hint">試合や練習の気づきから、今いちばん意識することを1つ決めましょう。手を広げず、1〜2個に絞るのがコツです。</p>
           <div className="focus-suggest">
             {suggestions.map((s) => (
               <button key={s.title} className="focus-sg" onClick={() => void add(s.title, s.note, s.tacticId)}>
@@ -45,12 +47,12 @@ export function WeeklyFocus() {
         </div>
       )}
 
-      {week.map((f) => {
+      {active.map((f) => {
         const t = f.tacticId ? tactics.find((x) => x.id === f.tacticId) : undefined
         return (
-          <div key={f.id} className={`focus-item ${f.done ? 'done' : ''}`}>
-            <button className="focus-check" aria-label={f.done ? '未達成に戻す' : '達成にする'} onClick={() => void toggleFocus(f.id)}>
-              {f.done ? '☑' : '☐'}
+          <div key={f.id} className="focus-item">
+            <button className="focus-check" aria-label="達成にする" onClick={() => void toggleFocus(f.id)}>
+              ☐
             </button>
             <div className="focus-main">
               <div className="focus-title">{f.title}</div>
@@ -68,7 +70,7 @@ export function WeeklyFocus() {
         )
       })}
 
-      {week.length > 0 && !full && !adding && (
+      {active.length > 0 && !full && !adding && (
         <div className="focus-more">
           {suggestions.slice(0, 2).map((s) => (
             <button key={s.title} className="chip small" onClick={() => void add(s.title, s.note, s.tacticId)}>
@@ -81,7 +83,7 @@ export function WeeklyFocus() {
         </div>
       )}
 
-      {full && <p className="hint small">今週はこの2つに集中。3つ目は作らず、次の週に回します。</p>}
+      {full && <p className="hint small">今はこの2つに集中。3つ目は作らず、達成してから次へ。</p>}
 
       {adding && (
         <div className="focus-input">
@@ -89,6 +91,27 @@ export function WeeklyFocus() {
           <button className="primary" disabled={!text.trim()} onClick={() => void add(text)}>
             追加
           </button>
+        </div>
+      )}
+
+      {done.length > 0 && (
+        <div className="focus-achieved">
+          <button className="link-btn" onClick={() => setShowDone(!showDone)}>
+            達成した焦点 {done.length} 件 {showDone ? '▲' : '▼'}
+          </button>
+          {showDone && (
+            <ul className="achieved-list">
+              {done.map((f) => (
+                <li key={f.id}>
+                  <span className="ac-check">✓</span>
+                  <span className="ac-title">{f.title}</span>
+                  <button className="focus-del" aria-label="削除" onClick={() => void deleteFocus(f.id)}>
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>

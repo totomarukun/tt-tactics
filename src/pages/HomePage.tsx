@@ -5,15 +5,9 @@ import { TacticMetaForm } from '../components/TacticMetaForm'
 import { WeeklyFocus } from '../components/WeeklyFocus'
 import { diagnose, type AiInsight } from '../domain/harness/insightAi'
 import { computeInsights, type Insight, type InsightView } from '../domain/insights'
-import { weekProgress } from '../domain/week'
 import { useStore } from '../store/useStore'
 
 const TONE_ICON: Record<Insight['tone'], string> = { good: '◎', warn: '⚠', info: '💡' }
-
-function daysAgo(n: number): string {
-  const d = new Date(Date.now() - n * 86400000)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 export function HomePage() {
   const { tactics, outcomes, tasks, logs, settings, navigate, addTactic } = useStore()
@@ -22,11 +16,6 @@ export function HomePage() {
   const [ai, setAi] = useState<{ kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; res: AiInsight } | { kind: 'error'; message: string }>({ kind: 'idle' })
 
   const insights = useMemo(() => computeInsights({ tactics, outcomes, tasks, logs }), [tactics, outcomes, tasks, logs])
-
-  const weekAgo = daysAgo(7)
-  const weekOutcomes = outcomes.filter((o) => o.date >= weekAgo).length
-  const weekPracticeDays = new Set(logs.filter((l) => l.date >= weekAgo && l.items.length > 0).map((l) => l.date)).size
-  const openTasks = tasks.filter((t) => t.status === 'open').length
   const withRoot = tactics.filter((t) => t.root)
 
   const act = (view: InsightView, tacticId?: string) => {
@@ -57,50 +46,13 @@ export function HomePage() {
         </button>
       </header>
 
-      {/* 今週の焦点（このアプリの背骨） */}
+      {/* 今の焦点（このアプリの背骨） */}
       {withRoot.length > 0 && <WeeklyFocus />}
 
-      {/* 今週の目標（やさしい継続） */}
-      {(() => {
-        const goal = settings.weeklyGoal ?? 1
-        const wp = weekProgress(logs, outcomes, goal)
-        return (
-          <div className={`week-goal ${wp.done ? 'done' : ''}`}>
-            <div className="wg-top">
-              <span className="wg-label">今週の目標</span>
-              <span className="wg-count">
-                {wp.active} / {goal} 日{wp.done && ' ◎'}
-              </span>
-            </div>
-            <div className="wg-bar">
-              {Array.from({ length: goal }).map((_, i) => (
-                <span key={i} className={i < wp.active ? 'fill' : ''} />
-              ))}
-            </div>
-            <div className="wg-msg">{wp.done ? '今週の目標を達成。お疲れさま。' : wp.active === 0 ? '練習や試合を記録すると進みます。休む週があってもOK。' : 'いいペース。焦らず続けましょう。'}</div>
-          </div>
-        )
-      })()}
-
-      {/* 今週の数字 */}
-      <div className="week-stats">
-        <div>
-          <b>{weekOutcomes}</b>
-          <span>今週の試合記録</span>
-        </div>
-        <div>
-          <b>{weekPracticeDays}</b>
-          <span>今週の練習日</span>
-        </div>
-        <div>
-          <b>{openTasks}</b>
-          <span>取り組み中の課題</span>
-        </div>
-      </div>
-
-      {/* 今日の一手 */}
+      {/* 次にやること（ループを回すための入力・記録の提案） */}
       <div className="section-head">
-        <span>今日の一手</span>
+        <span>次にやること</span>
+        {withRoot.length > 0 && <span className="hint small">記録・入力すると気づきが増えます</span>}
       </div>
       {withRoot.length === 0 ? (
         <div className="home-card info">

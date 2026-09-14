@@ -41,8 +41,8 @@ export function computeInsights(input: InsightInput): Insight[] {
       id: 'seed-outcomes',
       tone: 'info',
       priority: 40,
-      title: '試合結果を記録すると気づきが増える',
-      detail: '戦術を試合で試したら◎△✕を記録しましょう。3回たまると、効いている戦術と苦手な相手が見えてきます。',
+      title: '実戦（練習試合でもOK）の結果を記録すると気づきが増える',
+      detail: '戦術を実戦（練習試合含む）で試したら◎△✕を記録しましょう。3回たまると、効いている戦術と苦手な相手が見えてきます。',
       action: withRoot[0] ? { label: '戦術を開く', view: 'detail', tacticId: withRoot[0].id } : undefined,
     })
   }
@@ -79,7 +79,7 @@ export function computeInsights(input: InsightInput): Insight[] {
         tone: 'good',
         priority: 70,
         title: `「${t.title}」が効いている（${Math.round(s.winRate * 100)}%）`,
-        detail: '実績が良い戦術です。試合で積極的に使い、派生パターンを増やすと武器になります。',
+        detail: '実績が良い戦術です。実戦で積極的に使い、派生パターンを増やすと武器になります。',
         action: { label: '開く', view: 'detail', tacticId: t.id },
       })
     } else if (s.tried >= 3 && s.winRate !== null && s.winRate < 0.4) {
@@ -88,7 +88,7 @@ export function computeInsights(input: InsightInput): Insight[] {
         tone: 'warn',
         priority: 80,
         title: `「${t.title}」が効いていない（${Math.round(s.winRate * 100)}%）`,
-        detail: '試合で決まっていません。展開を見直すか、AI コーチに相談して修正案をもらいましょう。',
+        detail: '実戦で決まっていません。展開を見直すか、AI コーチに相談して修正案をもらいましょう。',
         action: { label: 'コーチに相談', view: 'consult' },
       })
     } else if (s.tried === 0 && t.confidence >= 2) {
@@ -96,8 +96,8 @@ export function computeInsights(input: InsightInput): Insight[] {
         id: `untried-${t.id}`,
         tone: 'info',
         priority: 60,
-        title: `「${t.title}」をまだ試合で試していない`,
-        detail: '自信ありに設定されていますが、実戦の記録がありません。次の試合で試して結果を残しましょう。',
+        title: `「${t.title}」をまだ実戦で試していない`,
+        detail: '自信ありに設定されていますが、実戦の記録がありません。次の練習試合などで試して結果を残しましょう。',
         action: { label: '開く', view: 'detail', tacticId: t.id },
       })
     }
@@ -149,8 +149,8 @@ export function computeInsights(input: InsightInput): Insight[] {
         id: `practiced-untried-${t.id}`,
         tone: 'info',
         priority: 55,
-        title: `「${t.title}」は練習済み。試合で試そう`,
-        detail: '練習した戦術を試合で使って、効くかどうかを確かめましょう。',
+        title: `「${t.title}」は練習済み。実戦で試そう`,
+        detail: '練習した戦術を実戦で使って、効くかどうかを確かめましょう。',
         action: { label: '開く', view: 'detail', tacticId: t.id },
       })
     }

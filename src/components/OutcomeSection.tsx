@@ -42,7 +42,7 @@ export function OutcomeSection({ tactic }: { tactic: Tactic }) {
   return (
     <>
       <div className="section-head">
-        <span>試合で試す</span>
+        <span>実戦で試す</span>
         <span className="hint small">{evidenceLabel(stats)}</span>
       </div>
       <div className="outcome-box">
@@ -99,7 +99,7 @@ export function OutcomeSection({ tactic }: { tactic: Tactic }) {
             ))}
           </ul>
         )}
-        {stats.tried === 0 && <p className="hint small">まだ試合で試していません。試したら結果を1タップで記録すると、効いているかが見えてきます。</p>}
+        {stats.tried === 0 && <p className="hint small">公式試合でなくてOK。クラブ内の練習試合やゲーム練習で試したら、結果を1タップで記録すると効いているかが見えてきます。</p>}
       </div>
     </>
   )
