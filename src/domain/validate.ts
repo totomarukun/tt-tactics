@@ -148,6 +148,28 @@ export function sanitizeOutcome(raw: unknown, report: SanitizeReport): TacticOut
   }
 }
 
+export function sanitizeCue(raw: unknown, report: SanitizeReport): import('./types').Cue | null {
+  if (!raw || typeof raw !== 'object') {
+    report.dropped++
+    return null
+  }
+  const r = raw as Record<string, unknown>
+  if (typeof r.id !== 'string') {
+    report.dropped++
+    return null
+  }
+  report.kept++
+  return {
+    ...(r as object),
+    id: r.id,
+    category: r.category === 'tactic' ? 'tactic' : 'tech',
+    text: str(r.text),
+    retired: r.retired === true,
+    createdAt: str(r.createdAt, new Date().toISOString()),
+    updatedAt: str(r.updatedAt, new Date().toISOString()),
+  }
+}
+
 export function sanitizeFocus(raw: unknown, report: SanitizeReport): Focus | null {
   if (!raw || typeof raw !== 'object') {
     report.dropped++

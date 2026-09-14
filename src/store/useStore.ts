@@ -6,8 +6,8 @@ import { evidenceConfidence, statsFor } from '../domain/outcome'
 import { weekStart } from '../domain/week'
 import { SPIN_LABEL, migrateLegacySpin } from '../domain/spin'
 import { newId } from '../domain/tree'
-import { newReport, sanitizeFocus, sanitizeLog, sanitizeOutcome, sanitizeSettings, sanitizeTactic, sanitizeTask } from '../domain/validate'
-import type { Focus, PracticeItem, PracticeLog, Settings, ShotNode, Tactic, TacticOutcome, Task } from '../domain/types'
+import { newReport, sanitizeCue, sanitizeFocus, sanitizeLog, sanitizeOutcome, sanitizeSettings, sanitizeTactic, sanitizeTask } from '../domain/validate'
+import type { Cue, CueCategory, Focus, PracticeItem, PracticeLog, Settings, ShotNode, Tactic, TacticOutcome, Task } from '../domain/types'
 
 export type View =
   | { name: 'home' }
@@ -27,6 +27,7 @@ export interface ExportFile {
   logs?: PracticeLog[]
   outcomes?: TacticOutcome[]
   focuses?: Focus[]
+  cues?: Cue[]
 }
 
 interface State {
@@ -36,6 +37,7 @@ interface State {
   logs: PracticeLog[]
   outcomes: TacticOutcome[]
   focuses: Focus[]
+  cues: Cue[]
   settings: Settings
   view: View
   navigate: (v: View) => void
@@ -43,6 +45,9 @@ interface State {
   addFocus: (data: Pick<Focus, 'title'> & Partial<Focus>) => Promise<void>
   toggleFocus: (id: string) => Promise<void>
   deleteFocus: (id: string) => Promise<void>
+  addCue: (category: CueCategory, text: string) => Promise<void>
+  updateCue: (id: string, patch: Partial<Cue>) => Promise<void>
+  deleteCue: (id: string) => Promise<void>
   addTactic: (data: Pick<Tactic, 'title' | 'situation' | 'oppHand'> & Partial<Tactic>) => Promise<Tactic>
   updateTactic: (id: string, patch: Partial<Tactic>) => Promise<void>
   deleteTactic: (id: string) => Promise<void>
@@ -92,6 +97,7 @@ export const useStore = create<State>((set, get) => ({
   logs: [],
   outcomes: [],
   focuses: [],
+  cues: [],
   settings: DEFAULT_SETTINGS,
   view: { name: 'home' },
 
@@ -99,13 +105,14 @@ export const useStore = create<State>((set, get) => ({
 
   load: async () => {
     // インデックス欠落のレコードを取りこぼさないよう、順序付けせず全件取得してから JS で並べる
-    const [rawTactics, row, rawTasks, rawLogs, rawOutcomes, rawFocuses] = await Promise.all([
+    const [rawTactics, row, rawTasks, rawLogs, rawOutcomes, rawFocuses, rawCues] = await Promise.all([
       db.tactics.toArray(),
       db.settings.get('main'),
       db.tasks.toArray(),
       db.logs.toArray(),
       db.outcomes.toArray(),
       db.focuses.toArray(),
+      db.cues.toArray(),
     ])
     // 境界検証: 壊れた/古い形のレコードを描画で落ちない形に整える
     const rep = newReport()
@@ -127,6 +134,7 @@ export const useStore = create<State>((set, get) => ({
       .filter((o): o is TacticOutcome => o !== null)
       .sort((a, b) => (a.date < b.date ? 1 : -1))
     const focuses = rawFocuses.map((f) => sanitizeFocus(f, rep)).filter((f): f is Focus => f !== null)
+    const cues = rawCues.map((c) => sanitizeCue(c, rep)).filter((c): c is Cue => c !== null)
     if (rep.dropped > 0 || rep.repaired > 0) {
       logEvent('warn', 'data', `読み込み時にデータを整えました（修復 ${rep.repaired} 件 / 破棄 ${rep.dropped} 件）`)
     }
@@ -139,6 +147,7 @@ export const useStore = create<State>((set, get) => ({
       logs,
       outcomes,
       focuses,
+      cues,
       settings: sanitizeSettings(row?.value),
       loaded: true,
     })
@@ -159,6 +168,24 @@ export const useStore = create<State>((set, get) => ({
   deleteFocus: async (id) => {
     await db.focuses.delete(id)
     set({ focuses: get().focuses.filter((f) => f.id !== id) })
+  },
+
+  addCue: async (category, text) => {
+    const c: Cue = { id: newId(), category, text: text.trim(), retired: false, createdAt: now(), updatedAt: now() }
+    if (!c.text) return
+    await db.cues.put(c)
+    set({ cues: [...get().cues, c] })
+  },
+  updateCue: async (id, patch) => {
+    const cur = get().cues.find((c) => c.id === id)
+    if (!cur) return
+    const next: Cue = { ...cur, ...patch, updatedAt: now() }
+    set({ cues: get().cues.map((c) => (c.id === id ? next : c)) })
+    await db.cues.put(next)
+  },
+  deleteCue: async (id) => {
+    await db.cues.delete(id)
+    set({ cues: get().cues.filter((c) => c.id !== id) })
   },
 
   // ---- 戦術 ----
@@ -323,6 +350,7 @@ export const useStore = create<State>((set, get) => ({
       logs: get().logs,
       outcomes: get().outcomes,
       focuses: get().focuses,
+      cues: get().cues,
     }
   },
 
@@ -337,14 +365,16 @@ export const useStore = create<State>((set, get) => ({
     const logs = (file.logs ?? []).map((l) => sanitizeLog(l, rep)).filter((l): l is PracticeLog => l !== null)
     const outcomes = (file.outcomes ?? []).map((o) => sanitizeOutcome(o, rep)).filter((o): o is TacticOutcome => o !== null)
     const focuses = (file.focuses ?? []).map((f) => sanitizeFocus(f, rep)).filter((f): f is Focus => f !== null)
+    const cues = (file.cues ?? []).map((c) => sanitizeCue(c, rep)).filter((c): c is Cue => c !== null)
     if (mode === 'replace') {
-      await Promise.all([db.tactics.clear(), db.tasks.clear(), db.logs.clear(), db.outcomes.clear(), db.focuses.clear()])
+      await Promise.all([db.tactics.clear(), db.tasks.clear(), db.logs.clear(), db.outcomes.clear(), db.focuses.clear(), db.cues.clear()])
     }
     await db.tactics.bulkPut(tactics)
     if (tasks.length) await db.tasks.bulkPut(tasks)
     if (logs.length) await db.logs.bulkPut(logs)
     if (outcomes.length) await db.outcomes.bulkPut(outcomes)
     if (focuses.length) await db.focuses.bulkPut(focuses)
+    if (cues.length) await db.cues.bulkPut(cues)
     if (file.settings) {
       const keep = get().settings.geminiApiKey
       await db.settings.put({ key: 'main', value: { ...sanitizeSettings(file.settings), geminiApiKey: keep } })

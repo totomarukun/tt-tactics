@@ -138,6 +138,17 @@ export interface PracticeLog {
   updatedAt: string
 }
 
+// 意識キュー: 今意識していること（技術/戦術）を短い1行で。各カテゴリ最大3件。身についたら卒業（retired）
+export type CueCategory = 'tech' | 'tactic'
+export interface Cue {
+  id: string
+  category: CueCategory
+  text: string
+  retired: boolean // 身についた（卒業）
+  createdAt: string
+  updatedAt: string
+}
+
 // 今週の焦点: 週1プレーヤーが、その1回の練習で何をやるかを1〜2個に絞る（最大2）
 export interface Focus {
   id: string

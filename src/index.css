@@ -2021,3 +2021,59 @@ textarea.full {
   color: var(--accent);
   vertical-align: middle;
 }
+
+/* ---- cues (意識していること) ---- */
+.cue-box {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.cue-cat {
+  margin-top: 8px;
+}
+.cue-cat-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.cue-items {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+}
+.cue-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 14px;
+}
+.cue-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.cue-text {
+  flex: 1;
+  min-width: 0;
+}
+.cue-graduate {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #d1fae5;
+  color: #065f46;
+}
+.cue-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { BottomNav } from '../components/BottomNav'
 import { ConsultSheet } from '../components/ConsultSheet'
+import { CueList } from '../components/CueList'
 import { TacticMetaForm } from '../components/TacticMetaForm'
 import { WeeklyFocus } from '../components/WeeklyFocus'
 import { diagnose, type AiInsight } from '../domain/harness/insightAi'
@@ -59,6 +60,9 @@ export function HomePage() {
 
       {/* 今の焦点（このアプリの背骨） */}
       {withRoot.length > 0 && <WeeklyFocus />}
+
+      {/* 意識していること（技術/戦術キュー） */}
+      {withRoot.length > 0 && <CueList />}
 
       {/* 次にやること（ループを回すための入力・記録の提案） */}
       <div className="section-head">
