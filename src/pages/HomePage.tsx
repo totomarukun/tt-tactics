@@ -58,7 +58,7 @@ export function HomePage() {
 
       {/* 今週の目標（やさしい継続） */}
       {(() => {
-        const goal = settings.weeklyGoal ?? 2
+        const goal = settings.weeklyGoal ?? 1
         const wp = weekProgress(logs, outcomes, goal)
         return (
           <div className={`week-goal ${wp.done ? 'done' : ''}`}>

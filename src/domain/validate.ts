@@ -159,7 +159,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     myHand: HANDS.has(r.myHand as Handedness) ? (r.myHand as Handedness) : 'right',
     defaultOppHand: HANDS.has(r.defaultOppHand as Handedness) ? (r.defaultOppHand as Handedness) : 'right',
     strokeOrder: arr<unknown>(r.strokeOrder).length ? (r.strokeOrder as Settings['strokeOrder']) : DEFAULT_STROKE_ORDER,
-    weeklyGoal: typeof r.weeklyGoal === 'number' && r.weeklyGoal >= 1 && r.weeklyGoal <= 7 ? r.weeklyGoal : 2,
+    weeklyGoal: typeof r.weeklyGoal === "number" && r.weeklyGoal >= 1 && r.weeklyGoal <= 7 ? r.weeklyGoal : 1,
   }
 }
 
