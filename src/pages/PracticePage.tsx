@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BottomNav } from '../components/BottomNav'
+import { StatsPanel } from '../components/StatsPanel'
 import type { PracticeLog, PracticeResult } from '../domain/types'
 import { shiftDate, today, useStore } from '../store/useStore'
 
@@ -18,6 +19,7 @@ function fmt(date: string): string {
 export function PracticePage() {
   const { tasks, tactics, logs, ensureLog, updateLog, setLogItem, removeLogItem, deleteLog } = useStore()
   const [date, setDate] = useState(today())
+  const [mode, setMode] = useState<'practice' | 'stats'>('practice')
   const [picking, setPicking] = useState(false)
   const [noteDraft, setNoteDraft] = useState('')
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({})
@@ -44,22 +46,38 @@ export function PracticePage() {
   return (
     <div className="page">
       <header className="app-bar">
-        <button className="icon" onClick={() => setDate(shiftDate(date, -1))} aria-label="前の日">
-          ‹
-        </button>
-        <h1 style={{ textAlign: 'center' }}>
-          {fmt(date)}
-          {date === today() && <span className="today-badge">今日</span>}
-        </h1>
-        <button className="icon" onClick={() => setDate(shiftDate(date, 1))} aria-label="次の日">
-          ›
-        </button>
+        <h1>記録</h1>
       </header>
-      {date !== today() && (
-        <button className="link-btn" onClick={() => setDate(today())}>
-          今日に戻る
+      <div className="chip-group seg">
+        <button className={`chip ${mode === 'practice' ? 'on' : ''}`} onClick={() => setMode('practice')}>
+          練習
         </button>
-      )}
+        <button className={`chip ${mode === 'stats' ? 'on' : ''}`} onClick={() => setMode('stats')}>
+          分析
+        </button>
+      </div>
+
+      {mode === 'stats' ? (
+        <StatsPanel />
+      ) : (
+        <>
+          <div className="date-nav">
+            <button className="icon" onClick={() => setDate(shiftDate(date, -1))} aria-label="前の日">
+              ‹
+            </button>
+            <span className="date-label">
+              {fmt(date)}
+              {date === today() && <span className="today-badge">今日</span>}
+            </span>
+            <button className="icon" onClick={() => setDate(shiftDate(date, 1))} aria-label="次の日">
+              ›
+            </button>
+          </div>
+          {date !== today() && (
+            <button className="link-btn" onClick={() => setDate(today())}>
+              今日に戻る
+            </button>
+          )}
 
       <section className="settings-section">
         <h2>やること</h2>
@@ -169,6 +187,8 @@ export function PracticePage() {
             ))}
           </ul>
         </section>
+      )}
+        </>
       )}
       <BottomNav />
     </div>
