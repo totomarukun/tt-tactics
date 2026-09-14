@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { AiLog } from '../components/AiLog'
+import { HarnessPanel } from '../components/HarnessPanel'
 import { BottomNav } from '../components/BottomNav'
 import { ProfileSheet } from '../components/ProfileSheet'
 import { profileIsFilled } from '../domain/profile'
@@ -174,6 +175,11 @@ export function SettingsPage() {
           }}
         />
         {msg && <p className="hint">{msg}</p>}
+      </section>
+
+      <section className="settings-section">
+        <h2>ハーネス（品質と診断）</h2>
+        <HarnessPanel />
       </section>
 
       <section className="settings-section">

@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 import { db } from './db'
 import { DEFAULT_SETTINGS } from '../domain/presets'
+import { logEvent } from '../domain/harness/events'
 import { SPIN_LABEL, migrateLegacySpin } from '../domain/spin'
 import { newId } from '../domain/tree'
+import { newReport, sanitizeLog, sanitizeSettings, sanitizeTactic, sanitizeTask } from '../domain/validate'
 import type { PracticeItem, PracticeLog, Settings, ShotNode, Tactic, Task } from '../domain/types'
 
 export type View =
@@ -82,19 +84,39 @@ export const useStore = create<State>((set, get) => ({
   navigate: (view) => set({ view }),
 
   load: async () => {
-    const [tactics, row, tasks, logs] = await Promise.all([
-      db.tactics.orderBy('updatedAt').reverse().toArray(),
+    // インデックス欠落のレコードを取りこぼさないよう、順序付けせず全件取得してから JS で並べる
+    const [rawTactics, row, rawTasks, rawLogs] = await Promise.all([
+      db.tactics.toArray(),
       db.settings.get('main'),
-      db.tasks.orderBy('createdAt').reverse().toArray(),
-      db.logs.orderBy('date').reverse().toArray(),
+      db.tasks.toArray(),
+      db.logs.toArray(),
     ])
-    const migrated = tactics.map(migrateTactic)
-    await Promise.all(migrated.filter((t, i) => t !== tactics[i]).map((t) => db.tactics.put(t)))
+    // 境界検証: 壊れた/古い形のレコードを描画で落ちない形に整える
+    const rep = newReport()
+    const tactics = rawTactics
+      .map((t) => sanitizeTactic(t, rep))
+      .filter((t): t is Tactic => t !== null)
+      .map(migrateTactic)
+      .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
+    const tasks = rawTasks
+      .map((t) => sanitizeTask(t, rep))
+      .filter((t): t is Task => t !== null)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    const logs = rawLogs
+      .map((l) => sanitizeLog(l, rep))
+      .filter((l): l is PracticeLog => l !== null)
+      .sort((a, b) => (a.date < b.date ? 1 : -1))
+    if (rep.dropped > 0 || rep.repaired > 0) {
+      logEvent('warn', 'data', `読み込み時にデータを整えました（修復 ${rep.repaired} 件 / 破棄 ${rep.dropped} 件）`)
+    }
+    // 整形・移行で変わったものを書き戻す（欠けていた index を補完し、次回から正しく並ぶ）
+    const rawById = new Map(rawTactics.map((t) => [t.id, t]))
+    await Promise.all(tactics.filter((t) => t !== rawById.get(t.id)).map((t) => db.tactics.put(t)))
     set({
-      tactics: migrated,
+      tactics,
       tasks,
       logs,
-      settings: { ...DEFAULT_SETTINGS, ...(row?.value ?? {}) },
+      settings: sanitizeSettings(row?.value),
       loaded: true,
     })
   },
@@ -229,21 +251,27 @@ export const useStore = create<State>((set, get) => ({
   },
 
   importData: async (file, mode) => {
-    if (file.app !== 'tt-tactics' || !Array.isArray(file.tactics)) {
+    if (!file || (file as { app?: string }).app !== 'tt-tactics' || !Array.isArray(file.tactics)) {
       throw new Error('tt-tactics のエクスポートファイルではありません')
     }
+    // 境界検証: インポートも整えてから保存する（外部ファイルは信用しない）
+    const rep = newReport()
+    const tactics = file.tactics.map((t) => sanitizeTactic(t, rep)).filter((t): t is Tactic => t !== null)
+    const tasks = (file.tasks ?? []).map((t) => sanitizeTask(t, rep)).filter((t): t is Task => t !== null)
+    const logs = (file.logs ?? []).map((l) => sanitizeLog(l, rep)).filter((l): l is PracticeLog => l !== null)
     if (mode === 'replace') {
       await Promise.all([db.tactics.clear(), db.tasks.clear(), db.logs.clear()])
     }
-    await db.tactics.bulkPut(file.tactics)
-    if (file.tasks) await db.tasks.bulkPut(file.tasks)
-    if (file.logs) await db.logs.bulkPut(file.logs)
+    await db.tactics.bulkPut(tactics)
+    if (tasks.length) await db.tasks.bulkPut(tasks)
+    if (logs.length) await db.logs.bulkPut(logs)
     if (file.settings) {
       const keep = get().settings.geminiApiKey
-      await db.settings.put({ key: 'main', value: { ...DEFAULT_SETTINGS, ...file.settings, geminiApiKey: keep } })
+      await db.settings.put({ key: 'main', value: { ...sanitizeSettings(file.settings), geminiApiKey: keep } })
     }
+    logEvent('info', 'io', `インポート: 戦術 ${tactics.length} / 課題 ${tasks.length} / ログ ${logs.length}（${mode === 'replace' ? '置換' : '追加'}）${rep.dropped ? ` / 不正 ${rep.dropped} 件を除外` : ''}`)
     await get().load()
-    return file.tactics.length
+    return tactics.length
   },
 }))
 

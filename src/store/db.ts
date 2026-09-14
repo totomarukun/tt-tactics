@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie'
+import type { AppEvent } from '../domain/harness/events'
 import type { TraceEntry } from '../domain/harness/trace'
 import type { PracticeLog, Settings, Tactic, Task } from '../domain/types'
 
@@ -13,6 +14,7 @@ export const db = new Dexie('tt-tactics') as Dexie & {
   tasks: Table<Task, string>
   logs: Table<PracticeLog, string>
   traces: Table<TraceEntry, string>
+  events: Table<AppEvent, string>
 }
 
 db.version(1).stores({
@@ -33,4 +35,13 @@ db.version(3).stores({
   tasks: 'id, status, createdAt',
   logs: 'id, &date',
   traces: 'id, at',
+})
+
+db.version(4).stores({
+  tactics: 'id, situation, updatedAt',
+  settings: 'key',
+  tasks: 'id, status, createdAt',
+  logs: 'id, &date',
+  traces: 'id, at',
+  events: 'id, at',
 })
