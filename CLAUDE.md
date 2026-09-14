@@ -21,7 +21,8 @@
 
 Agent = Model + Harness。AI とアプリ全体を Guides（導く）と Sensors（測る）で囲む。
 
-- `runner.ts` … すべての AI 呼び出しの単一経路。リトライ＋Flash フォールバック＋JSON 救済＋トレース。新しい AI 機能は必ずここを通す（`geminiJson` を直接呼ばない）。
+- `runner.ts` … すべての AI 呼び出しの単一経路。リトライ＋Flash フォールバック＋JSON 救済＋トレース。新しい AI 機能は必ずここを通す。構造化出力は `runAgent`、Web 調査は `runGrounded`（グラウンディング）。
+- `research.ts` … リサーチエージェント。グラウンディングと構造化出力は併用不可なので「調査(runGrounded)→合成(runAgent)→審査(verify)」の多段。新しい調査系機能はこの形を踏襲する。
 - `context.ts` … タスク別に知識章を選ぶ。全章を毎回送らない。
 - `checks.ts` … LLM を使わない決定的チェック（回転整合・決め球・打者交互など）。AI 提案とユーザー戦術の両方に使う。
 - `verify.ts` … 生成と評価を分ける審査役。提案とは別プロンプト。

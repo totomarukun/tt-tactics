@@ -1,4 +1,4 @@
-import { FALLBACK_MODEL, GeminiError, callGeminiOnce, resolveModel, type GeminiTurn } from '../gemini'
+import { FALLBACK_MODEL, GeminiError, type Citation, callGeminiGroundedOnce, callGeminiOnce, resolveModel, type GeminiTurn } from '../gemini'
 import type { Settings, Situation } from '../types'
 import { assembleKnowledge, type TaskKind } from './context'
 import { recordTrace } from './trace'
@@ -109,6 +109,70 @@ export async function runAgent<T>(
     }
   }
 
+  await recordTrace({
+    label: opts.label,
+    model,
+    attempts: attempt,
+    durationMs: Math.round(performance.now() - started),
+    status: 'error',
+    systemChars: fullSystem.length,
+    promptChars: promptText.length,
+    responseChars: 0,
+    promptPreview: promptText,
+    responsePreview: '',
+    error: lastErr instanceof Error ? lastErr.message : String(lastErr),
+  })
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr))
+}
+
+export interface GroundedRunResult {
+  text: string
+  citations: Citation[]
+  grounded: boolean
+  model: string
+  attempts: number
+}
+
+/** Google 検索グラウンディング付きの実行。JSON パースはしない（プレーンテキスト＋出典を返す）。 */
+export async function runGrounded(settings: Settings, system: string, turns: GeminiTurn[], opts: RunOptions): Promise<GroundedRunResult> {
+  const apiKey = settings.geminiApiKey?.trim()
+  if (!apiKey) throw new Error('設定画面で Gemini の API キーを登録してください')
+
+  const knowledge = opts.noKnowledge || !opts.kind ? '' : assembleKnowledge(settings, { kind: opts.kind, situation: opts.situation, tags: opts.tags, request: opts.request })
+  const fullSystem = system + knowledge
+  const promptText = turns.map((t) => t.text).join('\n')
+  const primary = await resolveModel(apiKey, settings.geminiModel)
+  const maxAttempts = opts.maxAttempts ?? 3
+  const started = performance.now()
+
+  let attempt = 0
+  let lastErr: unknown = null
+  let model = primary
+  while (attempt < maxAttempts) {
+    attempt++
+    if (attempt === maxAttempts && model !== FALLBACK_MODEL && !settings.geminiModel?.trim()) model = FALLBACK_MODEL
+    try {
+      const raw = await callGeminiGroundedOnce(apiKey, model, fullSystem, turns, opts.temperature ?? 0.6)
+      await recordTrace({
+        label: opts.label,
+        model: raw.model,
+        attempts: attempt,
+        durationMs: Math.round(performance.now() - started),
+        status: 'ok',
+        systemChars: fullSystem.length,
+        promptChars: promptText.length,
+        responseChars: raw.text.length,
+        promptPreview: promptText,
+        responsePreview: `${raw.grounded ? `[出典 ${raw.citations.length} 件]\n` : '[Web検索は使われませんでした]\n'}${raw.text}`,
+      })
+      return { ...raw, attempts: attempt }
+    } catch (e) {
+      lastErr = e
+      const retriable = e instanceof GeminiError ? e.retriable : false
+      if (!retriable || attempt >= maxAttempts) break
+      await sleep(600 * 2 ** (attempt - 1))
+    }
+  }
   await recordTrace({
     label: opts.label,
     model,

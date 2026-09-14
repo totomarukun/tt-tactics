@@ -132,3 +132,61 @@ export async function callGeminiOnce(
   if (!text) throw new GeminiError(0, `本文が空（finishReason: ${cand?.finishReason ?? '不明'}）`)
   return { text, model }
 }
+
+export interface Citation {
+  uri: string
+  title: string
+}
+export interface GroundedResult {
+  text: string
+  citations: Citation[]
+  grounded: boolean
+  model: string
+}
+
+/** 出典メタデータから引用元を取り出す（重複 URL は除く） */
+export function extractCitations(groundingMetadata: unknown): Citation[] {
+  const gm = groundingMetadata as { groundingChunks?: { web?: { uri?: string; title?: string } }[] } | undefined
+  const seen = new Set<string>()
+  const out: Citation[] = []
+  for (const c of gm?.groundingChunks ?? []) {
+    const uri = c.web?.uri
+    if (!uri || seen.has(uri)) continue
+    seen.add(uri)
+    out.push({ uri, title: c.web?.title || uri })
+  }
+  return out
+}
+
+/**
+ * Google 検索グラウンディング付きで1回呼ぶ。構造化出力は併用不可なのでプレーンテキスト＋出典を返す。
+ */
+export async function callGeminiGroundedOnce(apiKey: string, model: string, system: string, turns: GeminiTurn[], temperature: number): Promise<GroundedResult> {
+  let res: Response
+  try {
+    res = await fetch(`${API}/models/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: turns.map((t) => ({ role: t.role, parts: [{ text: t.text }] })),
+        tools: [{ google_search: {} }],
+        generationConfig: { temperature },
+      }),
+    })
+  } catch (e) {
+    throw new GeminiError(0, `ネットワークエラー: ${(e as Error).message}`)
+  }
+  if (!res.ok) throw new GeminiError(res.status, parseErrMsg(await res.text()))
+
+  const data = (await res.json()) as {
+    candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string; groundingMetadata?: unknown }[]
+    promptFeedback?: { blockReason?: string }
+  }
+  if (data.promptFeedback?.blockReason) throw new GeminiError(400, `ブロック（${data.promptFeedback.blockReason}）`)
+  const cand = data.candidates?.[0]
+  const text = (cand?.content?.parts ?? []).map((p) => p.text ?? '').join('')
+  if (!text) throw new GeminiError(0, `本文が空（finishReason: ${cand?.finishReason ?? '不明'}）`)
+  const citations = extractCitations(cand?.groundingMetadata)
+  return { text, citations, grounded: citations.length > 0, model }
+}

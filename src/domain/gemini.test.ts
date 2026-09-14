@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pickModel } from './gemini'
+import { extractCitations, pickModel } from './gemini'
 
 const m = (name: string, methods = ['generateContent']) => ({ name: `models/${name}`, supportedGenerationMethods: methods })
 
@@ -15,5 +15,25 @@ describe('pickModel', () => {
   })
   it('日付付きより無印エイリアスを優先', () => {
     expect(pickModel([m('gemini-2.5-pro-0605'), m('gemini-2.5-pro')])).toBe('gemini-2.5-pro')
+  })
+})
+
+describe('extractCitations', () => {
+  it('groundingChunks から URL と題を取り出し、重複を除く', () => {
+    const c = extractCitations({
+      groundingChunks: [
+        { web: { uri: 'https://a.com', title: 'A' } },
+        { web: { uri: 'https://a.com', title: 'A dup' } },
+        { web: { uri: 'https://b.com' } },
+        { notweb: {} },
+      ],
+    })
+    expect(c).toHaveLength(2)
+    expect(c[0]).toEqual({ uri: 'https://a.com', title: 'A' })
+    expect(c[1].title).toBe('https://b.com')
+  })
+  it('メタデータ無しは空配列', () => {
+    expect(extractCitations(undefined)).toEqual([])
+    expect(extractCitations({})).toEqual([])
   })
 })

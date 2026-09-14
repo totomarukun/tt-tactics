@@ -112,27 +112,27 @@ const SHOT_SCHEMA = {
   required: ['id', 'parent', 'player', 'col', 'depth', 'stroke', 'isFinisher'],
 }
 
+// 戦術1件のスキーマ（提案・リサーチで共有）
+export const TACTIC_ITEM_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', description: '戦術名（25文字以内）' },
+    situation: ENUM(['my_serve', 'opp_serve']),
+    goal: { type: 'string', description: '狙い（1文）' },
+    tags: { type: 'array', items: { type: 'string' }, description: '想定する相手タイプなど 0〜3 個' },
+    reasoning: { type: 'string', description: 'なぜこの選手に合うか（2〜3文）' },
+    shots: { type: 'array', items: SHOT_SCHEMA },
+  },
+  required: ['title', 'situation', 'goal', 'tags', 'reasoning', 'shots'],
+}
+
+export const VOCAB_BLOCK = VOCAB
+
 const PROPOSAL_SCHEMA = {
   type: 'object',
   properties: {
     summary: { type: 'string', description: '選手の特徴と戦術の方向性のまとめ。3〜4文' },
-    tactics: {
-      type: 'array',
-      minItems: 3,
-      maxItems: 5,
-      items: {
-        type: 'object',
-        properties: {
-          title: { type: 'string', description: '戦術名（25文字以内）' },
-          situation: ENUM(['my_serve', 'opp_serve']),
-          goal: { type: 'string', description: '狙い（1文）' },
-          tags: { type: 'array', items: { type: 'string' }, description: '想定する相手タイプなど 0〜3 個' },
-          reasoning: { type: 'string', description: 'なぜこの選手に合うか（2〜3文）' },
-          shots: { type: 'array', items: SHOT_SCHEMA },
-        },
-        required: ['title', 'situation', 'goal', 'tags', 'reasoning', 'shots'],
-      },
-    },
+    tactics: { type: 'array', minItems: 3, maxItems: 5, items: TACTIC_ITEM_SCHEMA },
   },
   required: ['summary', 'tactics'],
 }
