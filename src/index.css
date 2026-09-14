@@ -1992,3 +1992,32 @@ textarea.full {
   color: #059669;
   font-size: 18px;
 }
+
+/* ---- collapsible shot tree ---- */
+.shot-line {
+  display: flex;
+  align-items: center;
+}
+.shot-toggle {
+  flex: none;
+  width: 26px;
+  height: 40px;
+  color: var(--muted);
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+}
+.shot-toggle.empty {
+  visibility: hidden;
+}
+.branch-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  vertical-align: middle;
+}
