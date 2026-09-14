@@ -5,18 +5,20 @@ import { TacticMetaForm } from '../components/TacticMetaForm'
 import { WeeklyFocus } from '../components/WeeklyFocus'
 import { diagnose, type AiInsight } from '../domain/harness/insightAi'
 import { computeInsights, type Insight, type InsightView } from '../domain/insights'
+import { topHighlight } from '../domain/growth'
 import { useStore } from '../store/useStore'
 
 const TONE_ICON: Record<Insight['tone'], string> = { good: '◎', warn: '⚠', info: '💡' }
 
 export function HomePage() {
-  const { tactics, outcomes, tasks, logs, settings, navigate, addTactic } = useStore()
+  const { tactics, outcomes, tasks, logs, focuses, settings, navigate, addTactic } = useStore()
   const [consult, setConsult] = useState(false)
   const [creating, setCreating] = useState(false)
   const [ai, setAi] = useState<{ kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; res: AiInsight } | { kind: 'error'; message: string }>({ kind: 'idle' })
 
   const insights = useMemo(() => computeInsights({ tactics, outcomes, tasks, logs }), [tactics, outcomes, tasks, logs])
   const withRoot = tactics.filter((t) => t.root)
+  const highlight = topHighlight(tactics, outcomes, focuses)
 
   const act = (view: InsightView, tacticId?: string) => {
     if (view === 'consult') setConsult(true)
@@ -45,6 +47,15 @@ export function HomePage() {
           ⚙
         </button>
       </header>
+
+      {/* 成長ハイライト（過去の自分との比較） */}
+      {highlight && (
+        <button className={`growth-highlight ${highlight.tone}`} onClick={() => navigate({ name: 'practice' })}>
+          <span className="gh-icon">🌱</span>
+          <span className="gh-text">{highlight.text}</span>
+          <span className="gh-more">成長 ›</span>
+        </button>
+      )}
 
       {/* 今の焦点（このアプリの背骨） */}
       {withRoot.length > 0 && <WeeklyFocus />}

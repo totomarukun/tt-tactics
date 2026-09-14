@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BottomNav } from '../components/BottomNav'
+import { GrowthPanel } from '../components/GrowthPanel'
 import { StatsPanel } from '../components/StatsPanel'
 import type { PracticeLog, PracticeResult } from '../domain/types'
 import { shiftDate, today, useStore } from '../store/useStore'
@@ -19,7 +20,7 @@ function fmt(date: string): string {
 export function PracticePage() {
   const { tasks, tactics, logs, ensureLog, updateLog, setLogItem, removeLogItem, deleteLog } = useStore()
   const [date, setDate] = useState(today())
-  const [mode, setMode] = useState<'practice' | 'stats'>('practice')
+  const [mode, setMode] = useState<'practice' | 'stats' | 'growth'>('practice')
   const [picking, setPicking] = useState(false)
   const [noteDraft, setNoteDraft] = useState('')
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({})
@@ -52,12 +53,17 @@ export function PracticePage() {
         <button className={`chip ${mode === 'practice' ? 'on' : ''}`} onClick={() => setMode('practice')}>
           練習
         </button>
+        <button className={`chip ${mode === 'growth' ? 'on' : ''}`} onClick={() => setMode('growth')}>
+          成長
+        </button>
         <button className={`chip ${mode === 'stats' ? 'on' : ''}`} onClick={() => setMode('stats')}>
           分析
         </button>
       </div>
 
-      {mode === 'stats' ? (
+      {mode === 'growth' ? (
+        <GrowthPanel />
+      ) : mode === 'stats' ? (
         <StatsPanel />
       ) : (
         <>
