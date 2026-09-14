@@ -22,6 +22,7 @@ export function TacticDetailPage({ id }: { id: string }) {
   const { tactics, tasks, settings, navigate, updateTactic, deleteTactic, addTask, updateTask } = useStore()
   const [aiOpen, setAiOpen] = useState(false)
   const [newTask, setNewTask] = useState(false)
+  const [playKey, setPlayKey] = useState(0)
   const tactic = tactics.find((t) => t.id === id)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [sheet, setSheet] = useState<Sheet>({ kind: 'none' })
@@ -119,7 +120,12 @@ export function TacticDetailPage({ id }: { id: string }) {
       </div>
 
       <div className="diagram-wrap">
-        <TableDiagram path={path} hands={hands} onShotTap={setSelectedId} selectedId={effectiveSelected} />
+        <TableDiagram path={path} hands={hands} onShotTap={setSelectedId} selectedId={effectiveSelected} playKey={playKey} />
+        {path.length >= 2 && (
+          <button className="play-btn" onClick={() => setPlayKey((k) => k + 1)} aria-label="この展開を再生">
+            ▶ 再生
+          </button>
+        )}
       </div>
 
       {root && <SelfCheck issues={checkIssues} />}

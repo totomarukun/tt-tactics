@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { Hands, ShotNode, Side, Zone } from '../domain/types'
 import {
   COL_LABEL,
@@ -39,6 +40,8 @@ interface Props {
   compact?: boolean
   onShotTap?: (id: string) => void
   selectedId?: string | null
+  /** この値が変わると経路を球が飛ぶアニメを再生する */
+  playKey?: number
 }
 
 const R = 15
@@ -140,6 +143,7 @@ export function TableDiagram({
   compact,
   onShotTap,
   selectedId,
+  playKey,
 }: Props) {
   const hasServe = path[0]?.stroke === 'serve' && path[0].serveFrom
   const showServeArea = hasServe || pendingServeFrom || tapSide !== undefined
@@ -148,6 +152,31 @@ export function TableDiagram({
   const points = path.map((n) => zoneCenter(n.zone, hands))
   const serveStart = hasServe ? serveOrigin(path[0].serveFrom!, hands) : null
   const uid = compact ? 'c' : 'f'
+
+  // 台上アニメ再生: 球が経路上を順に飛ぶ
+  const [ball, setBall] = useState<{ x: number; y: number; hop: number } | null>(null)
+  const rafRef = useRef(0)
+  const animPoints = serveStart ? [serveStart, ...points] : points
+  useEffect(() => {
+    if (!playKey || animPoints.length < 2) return
+    const segs = animPoints.length - 1
+    const perSeg = 520 // ms
+    const start = performance.now()
+    const tick = (now: number) => {
+      const elapsed = now - start
+      const seg = Math.min(segs - 1, Math.floor(elapsed / perSeg))
+      const t = Math.min(1, (elapsed - seg * perSeg) / perSeg)
+      const a = animPoints[seg]
+      const b = animPoints[seg + 1]
+      const hop = Math.sin(t * Math.PI) // 弧を描く高さ表現
+      setBall({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, hop })
+      if (elapsed < segs * perSeg) rafRef.current = requestAnimationFrame(tick)
+      else setTimeout(() => setBall(null), 500)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playKey])
 
   return (
     <svg
@@ -330,6 +359,12 @@ export function TableDiagram({
             </g>
           )
         })}
+        {ball && (
+          <g className="anim-ball" pointerEvents="none">
+            <circle cx={ball.x} cy={ball.y} r={R + 3 + ball.hop * 4} fill="#f6e05e" opacity={0.35} />
+            <circle cx={ball.x} cy={ball.y} r={R * 0.7} fill="#fde047" stroke="#a16207" strokeWidth={2} />
+          </g>
+        )}
       </g>
     </svg>
   )
