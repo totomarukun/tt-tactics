@@ -19,7 +19,7 @@ const ROW = NODE_H + ROW_GAP
 
 interface Laid {
   node: ShotNode
-  parent: ShotNode | null
+  trail: ShotNode[] // root からこのノードまで（残像描画用）
   depth: number
   x: number // 左端
   y: number // 中心
@@ -30,21 +30,21 @@ function layoutTree(root: ShotNode): { laid: Laid[]; edges: { from: Laid; to: La
   const laid: Laid[] = []
   const byId = new Map<string, Laid>()
   let row = 0
-  const walk = (n: ShotNode, depth: number, parent: ShotNode | null): number => {
+  const walk = (n: ShotNode, depth: number, trail: ShotNode[]): number => {
     let cy: number
     if (n.children.length === 0) {
       cy = row * ROW
       row++
     } else {
-      const ys = n.children.map((c) => walk(c, depth + 1, n))
+      const ys = n.children.map((c) => walk(c, depth + 1, [...trail, c]))
       cy = (Math.min(...ys) + Math.max(...ys)) / 2
     }
-    const item: Laid = { node: n, parent, depth, x: depth * COL, y: cy }
+    const item: Laid = { node: n, trail, depth, x: depth * COL, y: cy }
     laid.push(item)
     byId.set(n.id, item)
     return cy
   }
-  walk(root, 0, null)
+  walk(root, 0, [root])
   const edges: { from: Laid; to: Laid }[] = []
   for (const it of laid) {
     for (const c of it.node.children) {
@@ -127,9 +127,9 @@ export function BranchBoard({ tactic, hands, onClose }: { tactic: Tactic; hands:
       requestAnimationFrame(resetView) // レイアウト前はサイズ0なので次フレームで再試行
       return
     }
-    const scale = 1.15 // 1ユーザー単位あたりのpx（コートが見える倍率）
-    const w = cw / scale
-    const h = ch / scale
+    // 約2.5列ぶんを表示（clientWidthの大小に依存しない決定的なズーム）
+    const w = COL * 2.6
+    const h = w * (ch / cw)
     const cy = bbox.y + bbox.h / 2
     vb.current = { x: bbox.x - 20, y: cy - h / 2, w, h }
     applyVB()
@@ -313,7 +313,7 @@ export function BranchBoard({ tactic, hands, onClose }: { tactic: Tactic; hands:
                 strokeWidth={sel ? 3 : onMain ? 2 : 1.5}
                 vectorEffect="non-scaling-stroke"
               />
-              <MiniCourt node={l.node} parent={l.parent} hands={hands} w={NODE_W} h={MINI_H} />
+              <MiniCourt trail={l.trail} hands={hands} w={NODE_W} h={MINI_H} />
               <text x={NODE_W / 2} y={MINI_H + 13} fontSize={12} fontWeight={700} fill="var(--text)" textAnchor="middle">
                 {clip(strokeText(l.node), 11)}
               </text>
