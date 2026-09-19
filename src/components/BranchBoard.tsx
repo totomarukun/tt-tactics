@@ -1,21 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { nodeLabel, strokeText } from '../domain/presets'
 import { defaultPath, findPath } from '../domain/tree'
-import type { ShotNode, Tactic } from '../domain/types'
+import type { Hands, ShotNode, Tactic } from '../domain/types'
 import { zoneShortLabel } from '../domain/zone'
+import { MiniCourt } from './MiniCourt'
 
 // 分岐マップ（ホワイトボード俯瞰）。ツリー全体を左→右に並べ、pan/pinch-zoom で見渡す。
 // 研究 10: 横 tidy tree・主線強調・セマンティックズーム・fit-to-screen・依存ゼロ。
 
-const NODE_W = 118
-const NODE_H = 40
-const COL_GAP = 74 // ノード間の横の余白（深さ方向）
-const ROW_GAP = 20 // ノード間の縦の余白（兄弟方向）
+const NODE_W = 112
+const MINI_H = Math.round((NODE_W * 540) / 300) // ミニコートの高さ（台の縦横比）
+const LABEL_H = 30
+const NODE_H = MINI_H + LABEL_H
+const COL_GAP = 60 // ノード間の横の余白（深さ方向）
+const ROW_GAP = 16 // ノード間の縦の余白（兄弟方向）
 const COL = NODE_W + COL_GAP
 const ROW = NODE_H + ROW_GAP
 
 interface Laid {
   node: ShotNode
+  parent: ShotNode | null
   depth: number
   x: number // 左端
   y: number // 中心
@@ -26,21 +30,21 @@ function layoutTree(root: ShotNode): { laid: Laid[]; edges: { from: Laid; to: La
   const laid: Laid[] = []
   const byId = new Map<string, Laid>()
   let row = 0
-  const walk = (n: ShotNode, depth: number): number => {
+  const walk = (n: ShotNode, depth: number, parent: ShotNode | null): number => {
     let cy: number
     if (n.children.length === 0) {
       cy = row * ROW
       row++
     } else {
-      const ys = n.children.map((c) => walk(c, depth + 1))
+      const ys = n.children.map((c) => walk(c, depth + 1, n))
       cy = (Math.min(...ys) + Math.max(...ys)) / 2
     }
-    const item: Laid = { node: n, depth, x: depth * COL, y: cy }
+    const item: Laid = { node: n, parent, depth, x: depth * COL, y: cy }
     laid.push(item)
     byId.set(n.id, item)
     return cy
   }
-  walk(root, 0)
+  walk(root, 0, null)
   const edges: { from: Laid; to: Laid }[] = []
   for (const it of laid) {
     for (const c of it.node.children) {
@@ -62,7 +66,7 @@ function edgePath(from: Laid, to: Laid): string {
 
 type VB = { x: number; y: number; w: number; h: number }
 
-export function BranchBoard({ tactic, onClose }: { tactic: Tactic; onClose: () => void }) {
+export function BranchBoard({ tactic, hands, onClose }: { tactic: Tactic; hands: Hands; onClose: () => void }) {
   const root = tactic.root
   const svgRef = useRef<SVGSVGElement | null>(null)
   const vb = useRef<VB>({ x: 0, y: 0, w: 1000, h: 1000 })
@@ -113,15 +117,21 @@ export function BranchBoard({ tactic, onClose }: { tactic: Tactic; onClose: () =
     applyVB()
   }
 
-  // 初期表示＝チップが読める倍率でルート付近から。全体像は「全体表示」で。
+  // 初期表示＝ミニコートが見える倍率でルート付近から。全体像は「全体表示」で。
   const resetView = () => {
     const el = svgRef.current
     if (!el) return
-    const scale = 1.05 // 1ユーザー単位あたりのpx（チップが読める倍率）
-    const w = el.clientWidth / scale
-    const h = el.clientHeight / scale
+    const cw = el.clientWidth
+    const ch = el.clientHeight
+    if (!cw || !ch) {
+      requestAnimationFrame(resetView) // レイアウト前はサイズ0なので次フレームで再試行
+      return
+    }
+    const scale = 1.15 // 1ユーザー単位あたりのpx（コートが見える倍率）
+    const w = cw / scale
+    const h = ch / scale
     const cy = bbox.y + bbox.h / 2
-    vb.current = { x: bbox.x - 24, y: cy - h / 2, w, h }
+    vb.current = { x: bbox.x - 20, y: cy - h / 2, w, h }
     applyVB()
   }
   useEffect(() => {
@@ -291,23 +301,23 @@ export function BranchBoard({ tactic, onClose }: { tactic: Tactic; onClose: () =
               </g>
             )
           }
-          // 近: チップ
+          // 近: ミニコート＋軌道のカード
           return (
-            <g key={l.node.id} transform={`translate(${l.x},${l.y - NODE_H / 2})`} onClick={() => tapNode(l)} style={{ cursor: 'pointer' }} opacity={onMain || sel ? 1 : 0.55}>
+            <g key={l.node.id} transform={`translate(${l.x},${l.y - NODE_H / 2})`} onClick={() => tapNode(l)} style={{ cursor: 'pointer' }} opacity={onMain || sel ? 1 : 0.5}>
               <rect
                 width={NODE_W}
                 height={NODE_H}
-                rx={9}
+                rx={12}
                 fill="var(--card)"
-                stroke={sel ? 'var(--accent)' : onMain ? 'var(--accent)' : 'var(--line)'}
+                stroke={sel || onMain ? 'var(--accent)' : 'var(--line)'}
                 strokeWidth={sel ? 3 : onMain ? 2 : 1.5}
                 vectorEffect="non-scaling-stroke"
               />
-              <rect width={5} height={NODE_H} rx={2.5} fill={me ? 'var(--me)' : 'var(--opp)'} />
-              <text x={13} y={16} fontSize={12} fontWeight={600} fill="var(--text)">
-                {clip(strokeText(l.node), 12)}
+              <MiniCourt node={l.node} parent={l.parent} hands={hands} w={NODE_W} h={MINI_H} />
+              <text x={NODE_W / 2} y={MINI_H + 13} fontSize={12} fontWeight={700} fill="var(--text)" textAnchor="middle">
+                {clip(strokeText(l.node), 11)}
               </text>
-              <text x={13} y={31} fontSize={11} fill="var(--muted)">
+              <text x={NODE_W / 2} y={MINI_H + 26} fontSize={11} fill="var(--muted)" textAnchor="middle">
                 {zoneShortLabel(l.node.zone)}
                 {l.node.isFinisher ? ' ★' : ''}
               </text>

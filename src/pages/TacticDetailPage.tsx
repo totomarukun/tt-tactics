@@ -195,7 +195,7 @@ export function TacticDetailPage({ id }: { id: string }) {
       <OutcomeSection tactic={tactic} />
 
       {aiOpen && <AiCoachSheet tactic={tactic} onClose={() => setAiOpen(false)} />}
-      {boardOpen && <BranchBoard tactic={tactic} onClose={() => setBoardOpen(false)} />}
+      {boardOpen && <BranchBoard tactic={tactic} hands={hands} onClose={() => setBoardOpen(false)} />}
       {newTask && (
         <TaskSheet
           isNew
