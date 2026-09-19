@@ -168,6 +168,7 @@ export function TableDiagram({
       const t = Math.min(1, (elapsed - seg * perSeg) / perSeg)
       const a = animPoints[seg]
       const b = animPoints[seg + 1]
+      if (!a || !b) return // 経路が再生中に変わった場合の保険
       const hop = Math.sin(t * Math.PI) // 弧を描く高さ表現
       setBall({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, hop })
       if (elapsed < segs * perSeg) rafRef.current = requestAnimationFrame(tick)

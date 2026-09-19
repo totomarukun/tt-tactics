@@ -2091,3 +2091,97 @@ textarea.full {
 .chip.on .pat-rate {
   color: #fff;
 }
+
+/* 分岐ビュー・イメトレ */
+.sheet.rehearse {
+  max-width: 560px;
+}
+.rehearse-diagram {
+  margin: 6px 0 10px;
+}
+.rehearse-trail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.trail-chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+.trail-chip.me {
+  border-color: var(--me);
+  color: var(--me);
+}
+.trail-chip.opp {
+  border-color: var(--opp);
+  color: var(--opp);
+}
+.rehearse-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.choice-heading {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 14px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--bg);
+  font-size: 15px;
+}
+.choice.opp {
+  border-color: color-mix(in srgb, var(--opp) 55%, var(--line));
+  background: color-mix(in srgb, var(--opp) 8%, var(--card));
+}
+.choice.me {
+  border-color: color-mix(in srgb, var(--me) 55%, var(--line));
+  background: color-mix(in srgb, var(--me) 8%, var(--card));
+}
+.choice:active {
+  transform: scale(0.99);
+}
+.choice-main {
+  flex: 1;
+  font-weight: 600;
+}
+.choice-zone {
+  font-size: 12px;
+  color: var(--muted);
+}
+.choice .star {
+  color: #eab308;
+  font-size: 16px;
+}
+.rehearse-end {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px dashed var(--line);
+  text-align: center;
+}
+.rehearse-end .end-label {
+  font-weight: 700;
+  font-size: 15px;
+}
+.rehearse-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.rehearse-controls .secondary {
+  flex: 1;
+}

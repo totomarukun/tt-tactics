@@ -17,7 +17,8 @@ describe('cue', () => {
   })
   it('14日更新なしは見直し対象', () => {
     const old = new Date(Date.now() - 20 * 86400000).toISOString()
+    const fresh = new Date(Date.now() - 2 * 86400000).toISOString()
     expect(staleCues([cue('a', 'tech', { updatedAt: old })]).length).toBe(1)
-    expect(staleCues([cue('b', 'tech')]).length).toBe(0)
+    expect(staleCues([cue('b', 'tech', { updatedAt: fresh })]).length).toBe(0)
   })
 })
