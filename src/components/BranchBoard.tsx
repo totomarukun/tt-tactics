@@ -8,8 +8,8 @@ import { MiniCourt } from './MiniCourt'
 // 分岐マップ（ホワイトボード俯瞰）。ツリー全体を左→右に並べ、pan/pinch-zoom で見渡す。
 // 研究 10: 横 tidy tree・主線強調・セマンティックズーム・fit-to-screen・依存ゼロ。
 
-const NODE_W = 112
-const MINI_H = Math.round((NODE_W * 540) / 300) // ミニコートの高さ（台の縦横比）
+const NODE_W = 150
+const MINI_H = Math.round((NODE_W * 240) / 300) // ミニコートの高さ（パース台の縦横比）
 const LABEL_H = 30
 const NODE_H = MINI_H + LABEL_H
 const COL_GAP = 60 // ノード間の横の余白（深さ方向）

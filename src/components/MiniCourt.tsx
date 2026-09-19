@@ -1,111 +1,67 @@
 import { SPIN_VECTOR, curveDirOnScreen, spinAmountScale } from '../domain/spin'
-import type { Hands, ShotNode } from '../domain/types'
-import { COURT_H, TABLE_H, TABLE_W, serveOrigin, zoneCenter } from '../domain/zone'
+import type { Hands, ShotNode, Zone } from '../domain/types'
+import { colIndex, rowIndex } from '../domain/zone'
 import { ME_COLOR, OPP_COLOR } from './TableDiagram'
 
-// 分岐マップのノード用ミニコート。root からこのノードまでの軌道を残像として薄く重ね、
-// 最後の1球を濃く描く。戦術で指定した「長さ/弾道・高さ・回転・回転量」を矢印で表す。
-// ネイティブ座標(300x540)で描き、呼び出し側で縮小。
+// 分岐マップのノード用ミニコート（奥行きパース）。
+// 弾道の矢印そのもので区別する: 弧の高さ=ボールの高さ / 着地の位置=コース・長さ / 曲がり=横回転。
+// 玉には回転の巻きつき矢印。補足記号は使わない。ネイティブ座標(300x240)で描き縮小。
 
 const TABLE_COLOR = '#1d5fa8'
-const BALL_R = 15
+const BALL_R = 13
+const NW = 300
+const NH = 240
+const NEAR_Y = 198 // 手前(自分)ベースライン
+const FAR_Y = 54 // 奥(相手)ベースライン
+const NEAR_HW = 140 // 手前の半幅
+const FAR_HW = 76 // 奥の半幅（パースで狭い）
+const CENTER = 150
 
 type Pt = { x: number; y: number }
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
-function unit(a: Pt, b: Pt): Pt {
-  const dx = b.x - a.x
-  const dy = b.y - a.y
-  const len = Math.hypot(dx, dy) || 1
-  return { x: dx / len, y: dy / len }
+// ゾーン → 台上のパース座標。row 0(相手奥)…5(自分奥)
+function surfPt(zone: Zone, hands: Hands): Pt {
+  const row = rowIndex(zone.depth, zone.side)
+  const t = 1 - (row + 0.5) / 6 // t=1 奥/上, t=0 手前/下
+  const y = lerp(NEAR_Y, FAR_Y, t)
+  const hw = lerp(NEAR_HW, FAR_HW, t)
+  const ci = colIndex(zone.col, zone.side, hands) // 0..2 左→右
+  return { x: CENTER + (ci - 1) * ((hw * 2) / 3), y }
 }
 
-function fromPoint(n: ShotNode, prev: ShotNode | null, hands: Hands): Pt {
-  if (prev) return zoneCenter(prev.zone, hands)
-  if (n.stroke === 'serve' && n.serveFrom) return { x: serveOrigin(n.serveFrom, hands).x, y: TABLE_H - 6 }
-  return { ...zoneCenter(n.zone, hands), y: TABLE_H - 6 }
+function serveSurf(col: Zone['col'] | undefined, hands: Hands): Pt {
+  const ci = col ? colIndex(col, 'me', hands) : 1
+  return { x: CENTER + (ci - 1) * ((NEAR_HW * 2) / 3), y: NEAR_Y + 18 }
 }
 
 function arrowHead(at: Pt, d: Pt, size: number, color: string) {
   const n = { x: -d.y, y: d.x }
   const tip = { x: at.x + d.x * size, y: at.y + d.y * size }
-  const b1 = { x: at.x + n.x * size * 0.62, y: at.y + n.y * size * 0.62 }
-  const b2 = { x: at.x - n.x * size * 0.62, y: at.y - n.y * size * 0.62 }
+  const b1 = { x: at.x + n.x * size * 0.6, y: at.y + n.y * size * 0.6 }
+  const b2 = { x: at.x - n.x * size * 0.6, y: at.y - n.y * size * 0.6 }
   return <path d={`M${tip.x},${tip.y} L${b1.x},${b1.y} L${b2.x},${b2.y} Z`} fill={color} />
-}
-
-/** 弾道の続き（長さ/弾道）。S=2バウンドで止まる, H=エンドラインで止まる, L=奥へ抜ける。 */
-function BounceTail({ from, to, depth, color }: { from: Pt; to: Pt; depth: ShotNode['zone']['depth']; color: string }) {
-  const d = unit(from, to)
-  if (depth === 'S') {
-    const q = { x: to.x + d.x * 30, y: to.y + d.y * 30 }
-    const q2 = { x: q.x + d.x * 16, y: q.y + d.y * 16 }
-    return (
-      <g>
-        <line x1={to.x} y1={to.y} x2={q.x} y2={q.y} stroke={color} strokeWidth={3} strokeLinecap="round" opacity={0.85} />
-        <circle cx={q.x} cy={q.y} r={7} fill="none" stroke={color} strokeWidth={3} />
-        <line x1={q.x} y1={q.y} x2={q2.x} y2={q2.y} stroke={color} strokeWidth={2} strokeLinecap="round" opacity={0.5} />
-      </g>
-    )
-  }
-  if (depth === 'H') {
-    const q = { x: to.x + d.x * 44, y: to.y + d.y * 44 }
-    const n = { x: -d.y, y: d.x }
-    return (
-      <g>
-        <line x1={to.x} y1={to.y} x2={q.x} y2={q.y} stroke={color} strokeWidth={3} strokeLinecap="round" opacity={0.85} />
-        <line x1={q.x - n.x * 11} y1={q.y - n.y * 11} x2={q.x + n.x * 11} y2={q.y + n.y * 11} stroke={color} strokeWidth={4} strokeLinecap="round" />
-      </g>
-    )
-  }
-  // L: 奥へ抜ける（点線＋矢じり）
-  const q = { x: to.x + d.x * 58, y: to.y + d.y * 58 }
-  return (
-    <g>
-      <line x1={to.x} y1={to.y} x2={q.x} y2={q.y} stroke={color} strokeWidth={3} strokeLinecap="round" strokeDasharray="6 5" opacity={0.9} />
-      {arrowHead(q, d, 13, color)}
-    </g>
-  )
-}
-
-/** 高さ（低い/高い）。玉の右上に小さな山形矢印で示す（高い=上向き2つ, 低い=下向き2つ）。 */
-function HeightMark({ cx, cy, height }: { cx: number; cy: number; height: NonNullable<ShotNode['height']> }) {
-  const up = height === 'high'
-  const ww = 9
-  const hh = 8
-  const chev = (off: number) => {
-    const y = cy + off
-    return up ? `M${cx - ww},${y + hh} L${cx},${y} L${cx + ww},${y + hh}` : `M${cx - ww},${y} L${cx},${y + hh} L${cx + ww},${y}`
-  }
-  return (
-    <g>
-      <path d={chev(0)} fill="none" stroke="#ffe14d" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-      <path d={chev(9)} fill="none" stroke="#ffe14d" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-    </g>
-  )
 }
 
 /**
  * 回転ベクトル・バッジ。玉に巻きつく矢印で回転を表す（下回転=縦の輪が上を通る等）。
- * 上下回転=縦長の輪、横回転=横長の輪、複合=斜めの輪。回転方向にアニメで回る。
- * 回転量: 強いほど輪が大きく速く回る。
+ * 上下回転=縦長の輪、横回転=横長の輪、複合=斜めの輪。回転量が強いほど大きく速く回る。
  */
 function SpinBadge({ cx, cy, spin, hand, amount }: { cx: number; cy: number; spin: NonNullable<ShotNode['spin']>; hand: 'right' | 'left'; amount: ShotNode['spinAmount'] }) {
   const v = SPIN_VECTOR[spin]
-  const side = hand === 'left' ? -v.x : v.x // +1 順横, -1 逆横
-  const vert = v.y // -1 上回転, +1 下回転
+  const side = hand === 'left' ? -v.x : v.x
+  const vert = v.y
   const rad = (d: number) => (d * Math.PI) / 180
   const R = BALL_R + 8 + (amount === 'strong' ? 4 : amount === 'weak' ? -2 : 0)
-  const sw = 3.5 * (amount === 'strong' ? 1.4 : amount === 'weak' ? 0.85 : 1)
+  const sw = 3.2 * (amount === 'strong' ? 1.4 : amount === 'weak' ? 0.85 : 1)
   const dur = amount === 'strong' ? '1.05s' : amount === 'weak' ? '2.6s' : '1.7s'
 
   let sx = 1
   let sy = 1
   let tilt = 0
-  if (vert !== 0 && side === 0) {
-    sx = 0.5
-  } else if (side !== 0 && vert === 0) {
-    sy = 0.5
-  } else {
+  if (vert !== 0 && side === 0) sx = 0.5
+  else if (side !== 0 && vert === 0) sy = 0.5
+  else {
     sx = 0.6
     tilt = side > 0 ? -40 : 40
   }
@@ -118,11 +74,9 @@ function SpinBadge({ cx, cy, spin, hand, amount }: { cx: number; cy: number; spi
   const sweep = dir > 0 ? 1 : 0
   const t = dir > 0 ? { x: -Math.sin(rad(endDeg)), y: Math.cos(rad(endDeg)) } : { x: Math.sin(rad(endDeg)), y: -Math.cos(rad(endDeg)) }
   const nrm = { x: -t.y, y: t.x }
-  const hl = 11
-  const hw = 7.5
-  const tip = { x: e.x + t.x * hl, y: e.y + t.y * hl }
-  const b1 = { x: e.x + nrm.x * hw, y: e.y + nrm.y * hw }
-  const b2 = { x: e.x - nrm.x * hw, y: e.y - nrm.y * hw }
+  const tip = { x: e.x + t.x * 10, y: e.y + t.y * 10 }
+  const b1 = { x: e.x + nrm.x * 7, y: e.y + nrm.y * 7 }
+  const b2 = { x: e.x - nrm.x * 7, y: e.y - nrm.y * 7 }
 
   return (
     <g transform={`translate(${cx},${cy}) rotate(${tilt}) scale(${sx},${sy})`}>
@@ -140,46 +94,57 @@ export function MiniCourt({ trail, hands, w, h }: { trail: ShotNode[]; hands: Ha
   const me = node.player === 'me'
   const color = me ? ME_COLOR : OPP_COLOR
 
+  const netY = lerp(NEAR_Y, FAR_Y, 0.5)
+  const netHW = lerp(NEAR_HW, FAR_HW, 0.5)
+
   const segs = trail.map((n, i) => {
-    const from = fromPoint(n, i > 0 ? trail[i - 1] : null, hands)
-    const to = zoneCenter(n.zone, hands)
+    const from = i > 0 ? surfPt(trail[i - 1].zone, hands) : serveSurf(n.serveFrom, hands)
+    const to = surfPt(n.zone, hands)
     const dx = to.x - from.x
     const dy = to.y - from.y
     const len = Math.hypot(dx, dy) || 1
     const hand = n.player === 'me' ? hands.me : hands.opp
-    // 回転量ぶんだけ弾道が曲がる
-    const dir = curveDirOnScreen(n.spin, n.player, hand)
-    const bend = dir * Math.min(70, len * 0.28) * spinAmountScale(n.spinAmount)
-    const mx = (from.x + to.x) / 2 + (-dy / len) * bend
-    const my = (from.y + to.y) / 2 + (dx / len) * bend
-    return { n, from, to, mx, my, isLast: i === trail.length - 1 }
+    // 横回転で弧が横に膨らむ（回転量で強弱）
+    const sb = curveDirOnScreen(n.spin, n.player, hand) * Math.min(46, len * 0.34) * spinAmountScale(n.spinAmount)
+    // 高さで弧の山の高さが変わる（弾道の矢印だけで高さが分かる）
+    const lift = 52 * (n.height === 'high' ? 1.75 : n.height === 'low' ? 0.5 : 1)
+    const cx = (from.x + to.x) / 2 + sb
+    const cy = Math.max(8, (from.y + to.y) / 2 - lift)
+    return { n, from, to, cx, cy, isLast: i === trail.length - 1 }
   })
-
   const last = segs[segs.length - 1]
 
   return (
-    <svg x={0} y={0} width={w} height={h} viewBox={`0 0 ${TABLE_W} ${TABLE_H}`} preserveAspectRatio="none">
-      <rect x={2} y={2} width={TABLE_W - 4} height={TABLE_H - 4} rx={10} fill={TABLE_COLOR} />
-      <line x1={TABLE_W / 2} y1={COURT_H} x2={TABLE_W / 2} y2={TABLE_H - 4} stroke="#ffffff" strokeWidth={1.5} opacity={0.3} />
-      <line x1={4} y1={COURT_H} x2={TABLE_W - 4} y2={COURT_H} stroke="#ffffff" strokeWidth={4} opacity={0.85} />
+    <svg x={0} y={0} width={w} height={h} viewBox={`0 0 ${NW} ${NH}`} preserveAspectRatio="none">
+      {/* 台（パース台形） */}
+      <path
+        d={`M${CENTER - NEAR_HW},${NEAR_Y} L${CENTER + NEAR_HW},${NEAR_Y} L${CENTER + FAR_HW},${FAR_Y} L${CENTER - FAR_HW},${FAR_Y} Z`}
+        fill={TABLE_COLOR}
+        stroke="#ffffff"
+        strokeWidth={2}
+        strokeOpacity={0.5}
+      />
+      {/* センターライン（サーブ基準・奥行き感） */}
+      <line x1={CENTER} y1={NEAR_Y} x2={CENTER} y2={FAR_Y} stroke="#ffffff" strokeWidth={1.5} opacity={0.28} />
+      {/* ネット */}
+      <rect x={CENTER - netHW} y={netY - 16} width={netHW * 2} height={16} fill="#ffffff" opacity={0.22} />
+      <line x1={CENTER - netHW} y1={netY} x2={CENTER + netHW} y2={netY} stroke="#ffffff" strokeWidth={3} opacity={0.9} />
 
-      {/* 過去の軌道（残像） */}
+      {/* 過去の弾道（残像） */}
       {segs
         .filter((s) => !s.isLast)
         .map((s, i) => (
-          <g key={`g${i}`} opacity={0.22}>
-            <path d={`M${s.from.x},${s.from.y} Q${s.mx},${s.my} ${s.to.x},${s.to.y}`} fill="none" stroke="#ffffff" strokeWidth={5} strokeLinecap="round" />
-            <circle cx={s.to.x} cy={s.to.y} r={9} fill="#ffffff" />
-          </g>
+          <path key={`g${i}`} d={`M${s.from.x},${s.from.y} Q${s.cx},${s.cy} ${s.to.x},${s.to.y}`} fill="none" stroke="#ffffff" strokeWidth={4} strokeLinecap="round" opacity={0.2} />
         ))}
 
-      {/* 最後の1球（濃く）＋弾道/高さ/回転 */}
+      {/* 今の1球：弾道の弧＋着地の玉＋回転 */}
       {last && (
         <g>
-          <path d={`M${last.from.x},${last.from.y} Q${last.mx},${last.my} ${last.to.x},${last.to.y}`} fill="none" stroke={color} strokeWidth={7} strokeLinecap="round" />
-          <BounceTail from={{ x: last.mx, y: last.my }} to={last.to} depth={node.zone.depth} color={color} />
-          <circle cx={last.to.x} cy={last.to.y} r={BALL_R} fill={color} stroke={me ? '#1d5fa8' : '#fff'} strokeWidth={3} />
-          {node.height && <HeightMark cx={last.to.x + BALL_R + 26} cy={last.to.y - BALL_R - 20} height={node.height} />}
+          {/* 台上の影（弧の高さを分かりやすく） */}
+          <line x1={last.from.x} y1={last.from.y} x2={last.to.x} y2={last.to.y} stroke="#0d2b52" strokeWidth={3} strokeLinecap="round" opacity={0.35} />
+          <path d={`M${last.from.x},${last.from.y} Q${last.cx},${last.cy} ${last.to.x},${last.to.y}`} fill="none" stroke={color} strokeWidth={6} strokeLinecap="round" />
+          {arrowHead(last.to, { x: (last.to.x - last.cx) / (Math.hypot(last.to.x - last.cx, last.to.y - last.cy) || 1), y: (last.to.y - last.cy) / (Math.hypot(last.to.x - last.cx, last.to.y - last.cy) || 1) }, 13, color)}
+          <circle cx={last.to.x} cy={last.to.y} r={BALL_R} fill={color} stroke={me ? '#1d5fa8' : '#fff'} strokeWidth={2.5} />
           {node.spin && node.spin !== 'none' && <SpinBadge cx={last.to.x} cy={last.to.y} spin={node.spin} hand={me ? hands.me : hands.opp} amount={node.spinAmount} />}
         </g>
       )}
