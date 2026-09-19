@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { AiCoachSheet } from '../components/AiCoachSheet'
 import { BottomNav } from '../components/BottomNav'
+import { BranchBoard } from '../components/BranchBoard'
 import { OutcomeSection } from '../components/OutcomeSection'
-import { RehearseSheet } from '../components/RehearseSheet'
 import { ShotSheet, type ShotData } from '../components/ShotSheet'
 import { TaskSheet } from '../components/TaskSheet'
 import { ShotTree } from '../components/ShotTree'
@@ -22,7 +22,7 @@ type Sheet =
 export function TacticDetailPage({ id }: { id: string }) {
   const { tactics, tasks, settings, navigate, updateTactic, deleteTactic, addTask, updateTask } = useStore()
   const [aiOpen, setAiOpen] = useState(false)
-  const [rehearseOpen, setRehearseOpen] = useState(false)
+  const [boardOpen, setBoardOpen] = useState(false)
   const [newTask, setNewTask] = useState(false)
   const [playKey, setPlayKey] = useState(0)
   const tactic = tactics.find((t) => t.id === id)
@@ -136,8 +136,8 @@ export function TacticDetailPage({ id }: { id: string }) {
         <>
           <div className="section-head">
             <span>分岐</span>
-            <button className="link-btn" onClick={() => setRehearseOpen(true)}>
-              分岐ビュー・イメトレ ▶
+            <button className="link-btn" onClick={() => setBoardOpen(true)}>
+              分岐マップで俯瞰 ⤢
             </button>
           </div>
           <ShotTree
@@ -195,7 +195,7 @@ export function TacticDetailPage({ id }: { id: string }) {
       <OutcomeSection tactic={tactic} />
 
       {aiOpen && <AiCoachSheet tactic={tactic} onClose={() => setAiOpen(false)} />}
-      {rehearseOpen && <RehearseSheet tactic={tactic} hands={hands} onClose={() => setRehearseOpen(false)} />}
+      {boardOpen && <BranchBoard tactic={tactic} onClose={() => setBoardOpen(false)} />}
       {newTask && (
         <TaskSheet
           isNew
