@@ -216,7 +216,7 @@ export function BranchBoard({ tactic, onClose }: { tactic: Tactic; onClose: () =
   }, [bbox.w])
 
   const tapNode = (l: Laid) => {
-    setSelectedId(l.id === selectedId ? null : l.node.id)
+    setSelectedId(l.node.id === selectedId ? null : l.node.id)
     // タップしたノードを中央へ寄せる（現在のズーム量は維持）
     const v = vb.current
     vb.current = { ...v, x: l.x + NODE_W / 2 - v.w / 2, y: l.y - v.h / 2 }
